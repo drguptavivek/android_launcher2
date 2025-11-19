@@ -2,121 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.0] - 2025-11-19
+## [0.5.0] - 2025-11-19
 
 ### Added
 - **Backend (SvelteKit)**:
-    - Initial project setup with SvelteKit and SQLite (Drizzle ORM).
-    - Device Registration API endpoint (`/api/devices/register`).
-    - Admin Dashboard to view registered devices.
-- **Android Client**:
-    - Basic Launcher setup with Jetpack Compose.
-    - Device Registration UI (`RegistrationScreen`).
-    - Retrofit API client for backend communication.
-    - Support for Android SDK 36 (Preview).
-- **Integration**:
-    - Verified end-to-end device registration flow.
-    - Configured `adb reverse` for local emulator connectivity.
-
-### Fixed
-- **Android Build**:
-    - Resolved build failures by updating to Gradle 9.2.1 and AGP 8.13.1.
-    - Fixed missing Android resources (strings, themes).
-    - Enabled `android.useAndroidX=true`.
-    - Suppressed `UnstableApiUsage` warnings in `settings.gradle.kts`.
-- **Connectivity**:
-    - Enabled `android:usesCleartextTraffic="true"` to allow local HTTP connections.
-    - Updated API client to use `localhost` instead of `10.0.2.2` for better compatibility with `adb reverse`.
-
-## [0.2.0] - 2025-11-19
-
-### Added
-- **Backend (SvelteKit)**:
-    - User Management:
-        - Added `users` table to database schema with username, password hash, role, and timestamps.
-        - Created User Management UI (`/users`) for creating and deleting users.
-        - Implemented user creation with role selection (child, parent, admin).
-    - Authentication API:
-        - Login endpoint (`/api/auth/login`) with credential validation.
-        - Logout endpoint (`/api/auth/logout`) for session termination.
-    - Telemetry System:
-        - Added `telemetry` table to track user events (LOGIN, LOGOUT).
-        - Records userId, deviceId, event type, UTC timestamp, and additional data.
-        - Login and logout events automatically logged with device information.
-    - Enhanced Admin Dashboard:
-        - New sidebar navigation layout with Tailwind CSS.
-        - Dashboard overview page with statistics.
-        - Upgraded device listing to responsive table with status badges.
-- **Android Client**:
-    - Login Screen:
-        - Created `LoginScreen` composable with username/password fields.
-        - Integrated with backend login API.
-        - Displays login status and error messages.
-    - User Session Management:
-        - Stores logged-in user data (id, username, role).
-        - Displays user info and device name after login.
-        - Logout functionality with telemetry tracking.
-    - Telemetry Integration:
-        - Sends device ID (Build.MODEL) with login requests.
-        - Calls logout API on user logout action.
-
-## [0.3.0] - 2025-11-19
-
-### Added
-- **Backend (SvelteKit)**:
-    - Telemetry API:
-        - Generic `/api/telemetry` endpoint for batch event ingestion.
-        - Supports `LOCATION` and `APP_USAGE` event types.
-    - Telemetry Dashboard:
-        - New `/telemetry` page to view real-time device events.
-        - Displays event type, user/device, timestamp, and raw data.
-- **Android Client**:
-    - Background Data Collection:
-        - Implemented `TelemetryWorker` using WorkManager (runs every 15 min).
-        - Collects GPS Location (Latitude, Longitude, Accuracy).
-        - Collects App Usage Stats (Top 5 apps by usage time).
-    - Permissions & Privacy:
-        - Added `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.
-        - Added `PACKAGE_USAGE_STATS` permission logic.
-        - UI prompts user to grant Usage Access in system settings.
-    - Session Management:
-        - Created `SessionManager` to persist user session and device ID.
-        - Auto-schedules telemetry worker upon login.
+    - Implemented a new secure device registration flow using temporary 5-digit codes.
+    - Added a `/api/devices/register/generate-code` endpoint to create time-sensitive registration codes.
+    - Added the ability for administrators to add a descriptive name to devices upon registration.
+    - Implemented an automatic cleanup mechanism to purge expired registration tokens.
 
 ### Changed
-- **Android**:
-    - `MainActivity` now checks for Usage Stats permission and shows a "Grant" button if missing.
-    - Added "Send Telemetry Now" button for easier testing.
+- **Backend (SvelteKit)**:
+    - The `/api/devices/register` endpoint now requires a valid 5-digit code.
+- **UI/UX (Admin Dashboard)**:
+    - Replaced the "Add Device" button with a modal-based registration flow.
+    - The new modal displays the registration code and an expiration countdown timer.
 
 ### Fixed
-- **Backend**:
-    - Fixed Svelte compilation error with invalid onclick handler syntax.
-    - Corrected telemetry table column names (`created_at` vs `createdAt`).
-    - Fixed login API to properly record telemetry events.
-- **Android**:
-    - Added missing imports for Compose runtime and coroutines.
-    - Updated API service to include deviceId in login requests.
+- **Admin Dashboard**:
+    - Resolved multiple Svelte 5 compilation errors related to props (`$props()`).
+    - Addressed accessibility warnings in the Modal component.
+    - Resolved a TypeScript error by installing type definitions for `better-sqlite3`.
+
+## [0.4.0] - 2025-11-19
+
+### Added
+- **Android Client**:
+    - Implemented offline‑first telemetry storage using Room SQLite.
+    - Added `TelemetryEntity`, `TelemetryDao`, and `AppDatabase`.
+    - Updated `TelemetryWorker` to save events locally and sync when network is available.
+    - Fixed JSON deserialization to handle both object and array payloads.
+- **Backend (SvelteKit)**:
+    - No code changes required; existing `/api/telemetry` endpoint now receives batched events after sync.
+
+### Fixed
+- Resolved `JsonSyntaxException` caused by mismatched JSON structures.
+- Improved logging for telemetry sync success/failure.
 
 ### Changed
-- **UI/UX**:
-    - Replaced default SvelteKit welcome page with custom dashboard.
-    - Enhanced device listing with modern card-based design.
-    - Added user avatar placeholders in user management UI.
-
-
-
-Telemetry now works (offline‑first + sync)
-
-What was fixed
-JSON parsing error – 
-
-TelemetryWorker
- tried to read every event’s dataJson as a Map, but some events are arrays.
-Added logic to detect whether the stored JSON starts with [ (array) or { (object) and deserialize accordingly.
-Improved logging – Errors now show the exact cause, and successful sync logs the number of events sent.
-How to test the whole flow
-1️⃣ Verify normal (online) telemetry
-Make sure the admin‑dashboard (npm run dev) is running at http://localhost:5173.
-Launch the Android app (already installed).
-Open Settings → tap “Send Telemetry Now”.
-Open the dashboard → Telemetry page. You should see the new event(s) appear instantly.
+- Updated documentation and README to reflect offline telemetry capabilities.

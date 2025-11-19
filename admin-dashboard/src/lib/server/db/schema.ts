@@ -4,8 +4,17 @@ export const devices = sqliteTable('devices', {
     id: text('id').primaryKey(),
     model: text('model').notNull(),
     androidVersion: text('android_version').notNull(),
+    description: text('description'),
     registeredAt: integer('registered_at', { mode: 'timestamp' }).notNull(),
     lastLogin: integer('last_login', { mode: 'timestamp' })
+});
+
+export const deviceRegistrationTokens = sqliteTable('device_registration_tokens', {
+	id: text('id').primaryKey(),
+	code: text('code').notNull().unique(),
+	description: text('description'),
+	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });
 
 export const users = sqliteTable('users', {

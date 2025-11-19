@@ -1,8 +1,8 @@
 Android Launcher & Admin System Task List
  Phase 1: Device Registration
  Backend (SvelteKit): Project Setup & Database Init
- Backend (SvelteKit): Implement Device Registration API
- Backend (SvelteKit): Implement Device Management UI
+ Backend (SvelteKit): Implement secure, token-based device registration API (5-digit code)
+ Backend (SvelteKit): Implement device management UI with a modal-based flow for registration
  Android: Project Setup & Basic Launcher Config
  Android: Implement Device Registration UI & API Client
  Integration: Verify Registration Flow (Android -> Backend)
