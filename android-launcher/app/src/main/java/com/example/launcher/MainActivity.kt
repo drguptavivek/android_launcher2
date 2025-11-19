@@ -20,6 +20,7 @@ import com.example.launcher.data.SessionManager
 import com.example.launcher.data.network.ApiService
 import com.example.launcher.data.network.LogoutRequest
 import com.example.launcher.data.network.UserData
+import com.example.launcher.ui.registration.RegistrationScreen
 import com.example.launcher.ui.login.LoginScreen
 import com.example.launcher.ui.settings.SettingsScreen
 import com.example.launcher.worker.TelemetryWorker
@@ -53,6 +54,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // Load initial state from session
+                    var isDeviceRegistered by remember { mutableStateOf(sessionManager.isDeviceRegistered()) }
                     var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
                     var isLoggedIn by remember { mutableStateOf(currentUser != null) }
                     var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS
@@ -74,7 +76,13 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-                    if (isLoggedIn && currentUser != null) {
+                    if (!isDeviceRegistered) {
+                        RegistrationScreen(
+                            onRegistrationSuccess = {
+                                isDeviceRegistered = true
+                            }
+                        )
+                    } else if (isLoggedIn && currentUser != null) {
                         if (currentScreen == "SETTINGS") {
                             SettingsScreen(
                                 currentUser = currentUser,
@@ -82,7 +90,7 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     // Trigger logout API call
                                     val userId = currentUser?.id ?: ""
-                                    val deviceId = android.os.Build.MODEL
+                                    val deviceId = sessionManager.getDeviceId() ?: android.os.Build.MODEL
                                     
                                     GlobalScope.launch {
                                         try {
@@ -101,6 +109,14 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = false 
                                     currentUser = null
                                     currentScreen = "HOME"
+                                },
+                                onReset = {
+                                    sessionManager.clearUser()
+                                    sessionManager.clearDeviceRegistration()
+                                    isLoggedIn = false
+                                    currentUser = null
+                                    isDeviceRegistered = false
+                                    currentScreen = "HOME"
                                 }
                             )
                         } else {
@@ -116,7 +132,7 @@ class MainActivity : ComponentActivity() {
                                                     style = MaterialTheme.typography.titleMedium
                                                 )
                                                 Text(
-                                                    text = "${android.os.Build.MODEL} • Login: ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(currentUser?.loginTime ?: 0))}",
+                                                    text = "${sessionManager.getDeviceDescription() ?: android.os.Build.MODEL} • Login: ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(currentUser?.loginTime ?: 0))}",
                                                     style = MaterialTheme.typography.bodySmall
                                                 )
                                             }

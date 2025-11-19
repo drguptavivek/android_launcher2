@@ -1,7 +1,7 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 
 export const devices = sqliteTable('devices', {
-    id: text('id').primaryKey(),
+    id: integer('id').primaryKey({ autoIncrement: true }),
     model: text('model').notNull(),
     androidVersion: text('android_version').notNull(),
     description: text('description'),
@@ -10,11 +10,11 @@ export const devices = sqliteTable('devices', {
 });
 
 export const deviceRegistrationTokens = sqliteTable('device_registration_tokens', {
-	id: text('id').primaryKey(),
-	code: text('code').notNull().unique(),
-	description: text('description'),
-	expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+    id: text('id').primaryKey(),
+    code: text('code').notNull().unique(),
+    description: text('description'),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });
 
 export const users = sqliteTable('users', {

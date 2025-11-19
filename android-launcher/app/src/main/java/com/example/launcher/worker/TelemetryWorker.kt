@@ -138,7 +138,7 @@ class TelemetryWorker(
                     
                     val request = TelemetryRequest(
                         userId = user.id,
-                        deviceId = android.os.Build.MODEL,
+                        deviceId = sessionManager.getDeviceId() ?: android.os.Build.MODEL,
                         events = apiEvents
                     )
                     

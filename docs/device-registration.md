@@ -54,7 +54,7 @@ The Android Launcher & Admin System uses a token-based device registration workf
 {
   "status": "success",
   "message": "Device registered successfully",
-  "deviceId": 1001,
+  "deviceId": "1001",
   "description": "John's Test Phone",
   "registeredAt": "2024-01-01T09:55:00.000Z"
 }
@@ -125,7 +125,7 @@ CREATE TABLE deviceRegistrationTokens (
 
 ### Step 3: Android App Collects Device Information
 ```kotlin
-val deviceInfo = DeviceRegistrationRequest(
+val deviceInfo = RegistrationRequest(
     registrationCode = userEnteredCode.uppercase(),
     model = Build.MODEL,
     androidVersion = Build.VERSION.RELEASE
@@ -166,24 +166,25 @@ if (response.status == "success") {
 2. Validates 5-digit code format
 3. Looks up active registration token in database
 4. Checks if code is not expired
-5. Creates device record with provided information
-6. Deletes used registration token
-7. Returns success response with device details
+5. Creates device record with auto-increment device ID (e.g., 1001, 1002, etc.)
+6. Copies description from registration token to device record
+7. Deletes used registration token
+8. Returns success response with server-generated device ID and description
 
 ### Step 6: Android App Saves Registration Data
 ```kotlin
-// Save to SharedPreferences/SessionManager
+// Save to SharedPreferences/SessionManager (MUST save both ID and description)
 sessionManager.apply {
-    saveDeviceId(response.deviceId)
-    saveDeviceDescription(response.description)
+    saveDeviceId(response.deviceId)        // Server auto-increment ID (e.g., 1001)
+    saveDeviceDescription(response.description)  // Admin description (e.g., "John's Test Phone")
     saveRegistrationTimestamp(response.registeredAt)
     setDeviceRegistered(true)
 }
 ```
 
 **Saved Device Information:**
-- **Device ID**: Server-confirmed unique identifier
-- **Description**: Admin-provided device description
+- **Device ID**: Server-generated auto-increment integer (e.g., 1001, 1002, etc.) for easy identification
+- **Description**: Admin-provided device description for user-friendly identification
 - **Registration Timestamp**: When device was registered
 - **Registration Status**: Flag indicating device is registered
 
@@ -206,7 +207,8 @@ sessionManager.apply {
 - Stores pending registration attempt locally for retry
 
 ### Already Registered Device
-- If device ID already exists, server updates device record
+- Since device IDs are server-generated auto-increment values, duplicates are handled by database constraints
+- Server updates device record if same physical device tries to re-register
 - Preserves existing device associations and telemetry history
 - Returns updated device information to Android app
 
@@ -219,9 +221,10 @@ sessionManager.apply {
 - Tokens are single-use (deleted after successful registration)
 
 ### Data Protection
-- Device IDs are UUIDs, no personal identifiers
+- Device IDs are auto-increment integers, no personal identifiers
 - Registration data transmitted over HTTPS
 - No sensitive information stored in registration tokens
+- Device descriptions are admin-provided and should not contain personal data
 
 ### Rate Limiting
 - Consider implementing rate limiting on code generation endpoint
@@ -242,4 +245,30 @@ sessionManager.apply {
 3. **Telemetry**: Associate events with registered devices
 4. **Admin Dashboard**: Display registered devices with descriptions
 
-This registration system provides a secure, user-friendly way to associate Android devices with the admin system while maintaining privacy and security standards.
+---
+
+## Implementation Checklist
+
+### Android Client Implementation
+- [x] **ApiService**: Update `RegistrationRequest` and `RegistrationResponse` data classes.
+- [x] **SessionManager**: Add methods to save/retrieve `deviceId`, `description`, and `registeredAt`.
+- [x] **RegistrationScreen**:
+    - [x] Add UI for entering 5-digit code.
+    - [x] Call `registerDevice` API.
+    - [x] Handle success (save data) and error states.
+- [x] **MainActivity**:
+    - [x] Check `isDeviceRegistered()` on launch.
+    - [x] Show `RegistrationScreen` if not registered.
+    - [x] Show `LoginScreen` if registered but not logged in.
+- [x] **LoginScreen**:
+    - [x] Use stored `deviceId` in login request.
+- [x] **SettingsScreen**:
+    - [x] Display Device Name (Description) and ID.
+- [x] **TelemetryWorker**:
+    - [x] Use stored `deviceId` for telemetry events.
+
+### Backend Implementation (Completed)
+- [x] API Endpoint: `/api/devices/register/generate-code`
+- [x] API Endpoint: `/api/devices/register`
+- [x] Database: `devices` and `deviceRegistrationTokens` tables.
+- [x] Admin UI: Generate code modal.

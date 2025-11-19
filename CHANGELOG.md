@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-11-19
+
+### Changed
+- **Backend (SvelteKit)**:
+    - Changed `devices` table primary key from UUID string to Auto-Increment Integer for shorter, more readable Device IDs (e.g., "1", "1001").
+    - Updated registration API to return the generated integer ID.
+- **Android Client**:
+    - Updated `RegistrationScreen` to handle the new integer Device ID format.
+    - Added a "Reset Registration (Debug)" button in Settings to clear local registration data for testing.
+
+### Added
+- **Backend**:
+    - Added `seed.ts` script to seed the database with a default admin user (`admin` / `password`).
+
 ## [0.5.0] - 2025-11-19
 
 ### Added

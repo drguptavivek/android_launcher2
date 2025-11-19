@@ -19,9 +19,11 @@ import com.example.launcher.worker.TelemetryWorker
 fun SettingsScreen(
     currentUser: UserData?,
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onReset: () -> Unit
 ) {
     val context = LocalContext.current
+    val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
     
     Scaffold(
         topBar = {
@@ -48,9 +50,11 @@ fun SettingsScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Device Information", style = MaterialTheme.typography.titleMedium)
                     Spacer(modifier = Modifier.height(8.dp))
+                    Text("Name: ${sessionManager.getDeviceDescription() ?: "Unknown"}")
                     Text("Model: ${android.os.Build.MODEL}")
-                    Text("Server: http://localhost:5173/") // Hardcoded for now
-                    Text("User ID: ${currentUser?.id}")
+                    Text("Device ID: ${sessionManager.getDeviceId() ?: "Not Registered"}")
+                    Text("Server: http://localhost:5173/")
+                    Text("User: ${currentUser?.username ?: "Not Logged In"}")
                 }
             }
 
@@ -114,6 +118,16 @@ fun SettingsScreen(
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Logout")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onReset,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Reset Registration (Debug)")
             }
         }
     }

@@ -12,6 +12,9 @@ class SessionManager(context: Context) {
     companion object {
         private const val KEY_USER = "user"
         private const val KEY_DEVICE_ID = "device_id"
+        private const val KEY_DEVICE_DESCRIPTION = "device_description"
+        private const val KEY_REGISTRATION_TIMESTAMP = "registration_timestamp"
+        private const val KEY_IS_REGISTERED = "is_registered"
     }
 
     fun saveUser(user: UserData) {
@@ -38,5 +41,31 @@ class SessionManager(context: Context) {
 
     fun getDeviceId(): String? {
         return prefs.getString(KEY_DEVICE_ID, null)
+    }
+
+    fun saveDeviceRegistration(deviceId: String, description: String, registeredAt: String) {
+        prefs.edit()
+            .putString(KEY_DEVICE_ID, deviceId)
+            .putString(KEY_DEVICE_DESCRIPTION, description)
+            .putString(KEY_REGISTRATION_TIMESTAMP, registeredAt)
+            .putBoolean(KEY_IS_REGISTERED, true)
+            .apply()
+    }
+
+    fun isDeviceRegistered(): Boolean {
+        return prefs.getBoolean(KEY_IS_REGISTERED, false)
+    }
+
+    fun getDeviceDescription(): String? {
+        return prefs.getString(KEY_DEVICE_DESCRIPTION, null)
+    }
+
+    fun clearDeviceRegistration() {
+        prefs.edit()
+            .remove(KEY_DEVICE_ID)
+            .remove(KEY_DEVICE_DESCRIPTION)
+            .remove(KEY_REGISTRATION_TIMESTAMP)
+            .remove(KEY_IS_REGISTERED)
+            .apply()
     }
 }

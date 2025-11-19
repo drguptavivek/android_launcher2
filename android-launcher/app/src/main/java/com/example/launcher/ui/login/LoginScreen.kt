@@ -21,6 +21,8 @@ fun LoginScreen(onLoginSuccess: (UserData) -> Unit) {
     var status by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
 
     // Using localhost with adb reverse tcp:5173 tcp:5173
     val baseUrl = "http://localhost:5173/"
@@ -72,8 +74,8 @@ fun LoginScreen(onLoginSuccess: (UserData) -> Unit) {
                             .build()
                         
                         val api = retrofit.create(ApiService::class.java)
-                        // Using Build.MODEL as a simple device identifier for now
-                        val deviceId = android.os.Build.MODEL
+                        // Use registered device ID, fallback to Build.MODEL if something goes wrong
+                        val deviceId = sessionManager.getDeviceId() ?: android.os.Build.MODEL
                         val response = api.login(LoginRequest(username, password, deviceId))
                         
                         if (response.success && response.user != null) {

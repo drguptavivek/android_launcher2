@@ -4,14 +4,17 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 data class RegistrationRequest(
-    val id: String,
+    val registrationCode: String,
     val model: String,
     val androidVersion: String
 )
 
 data class RegistrationResponse(
     val status: String,
-    val message: String
+    val message: String,
+    val deviceId: String,
+    val description: String,
+    val registeredAt: String
 )
 
 data class LoginRequest(

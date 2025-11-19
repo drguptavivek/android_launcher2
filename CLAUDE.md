@@ -43,12 +43,22 @@ npm run test                   # Vitest unit tests
 ```bash
 cd android-launcher
 ./gradlew tasks                # List available tasks
+./gradlew assembleDebug
 ./gradlew :app:assembleDebug   # Build debug APK
 ./gradlew :app:installDebug    # Install on connected device
 ./gradlew testDebugUnitTest    # Run unit tests
 ./gradlew connectedDebugAndroidTest # Instrumentation tests
 adb reverse tcp:5173 tcp:5173  # Reverse proxy for local API testing
 ```
+
+~/Library/Android/sdk/platform-tools/adb reverse tcp:5173 tcp:5173
+~/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+~/Library/Android/sdk/emulator/emulator -list-avds
+~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
+
+
+
 
 ### Database Operations
 ```bash
