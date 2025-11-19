@@ -1,12 +1,14 @@
+
 import { json } from '@sveltejs/kit';
 import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
-import { users } from '$lib/server/db/schema';
+import { users, telemetry } from '$lib/server/db/schema';
 import type { RequestHandler } from './$types';
+import { randomUUID } from 'crypto';
 
 export const POST: RequestHandler = async ({ request }) => {
     try {
-        const { username, password } = await request.json();
+        const { username, password, deviceId } = await request.json();
 
         if (!username || !password) {
             return json({ error: 'Missing credentials' }, { status: 400 });
@@ -21,14 +23,29 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Check password (simple hash for now as per user management)
+        // Check password
         const passwordHash = Buffer.from(password).toString('base64');
 
         if (user.passwordHash !== passwordHash) {
             return json({ error: 'Invalid credentials' }, { status: 401 });
         }
 
-        // Return success (and maybe a token in the future)
+        // Record Telemetry
+        try {
+            await db.insert(telemetry).values({
+                id: randomUUID(),
+                userId: user.id,
+                deviceId: deviceId || 'unknown',
+                type: 'LOGIN',
+                data: JSON.stringify({ timestamp: new Date().toISOString() }),
+                createdAt: new Date()
+            });
+        } catch (tError) {
+            console.error('Failed to record telemetry:', tError);
+            // Don't fail login just because telemetry failed
+        }
+
+        // Return success
         return json({
             success: true,
             user: {

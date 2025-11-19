@@ -16,7 +16,13 @@ data class RegistrationResponse(
 
 data class LoginRequest(
     val username: String,
-    val password: String
+    val password: String,
+    val deviceId: String
+)
+
+data class LogoutRequest(
+    val userId: String,
+    val deviceId: String
 )
 
 data class LoginResponse(
@@ -37,4 +43,7 @@ interface ApiService {
 
     @POST("/api/auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @POST("/api/auth/logout")
+    suspend fun logout(@Body request: LogoutRequest): LoginResponse
 }

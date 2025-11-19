@@ -16,3 +16,12 @@ export const users = sqliteTable('users', {
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });
 
+export const telemetry = sqliteTable('telemetry', {
+    id: text('id').primaryKey(),
+    userId: text('user_id').references(() => users.id),
+    deviceId: text('device_id'),
+    type: text('type').notNull(), // e.g., 'LOGIN', 'APP_OPEN'
+    data: text('data'), // JSON string for extra details
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+

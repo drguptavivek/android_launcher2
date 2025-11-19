@@ -9,12 +9,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.example.launcher.data.network.ApiService
 import com.example.launcher.data.network.LoginRequest
+import com.example.launcher.data.network.UserData
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 @Composable
-fun LoginScreen(onLoginSuccess: () -> Unit) {
+fun LoginScreen(onLoginSuccess: (UserData) -> Unit) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var status by remember { mutableStateOf("") }
@@ -71,11 +72,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                             .build()
                         
                         val api = retrofit.create(ApiService::class.java)
-                        val response = api.login(LoginRequest(username, password))
+                        // Using Build.MODEL as a simple device identifier for now
+                        val deviceId = android.os.Build.MODEL
+                        val response = api.login(LoginRequest(username, password, deviceId))
                         
-                        if (response.success) {
+                        if (response.success && response.user != null) {
                             status = "Success!"
-                            onLoginSuccess()
+                            onLoginSuccess(response.user)
                         } else {
                             status = "Error: ${response.error ?: "Unknown error"}"
                         }

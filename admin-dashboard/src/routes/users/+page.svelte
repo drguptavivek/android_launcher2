@@ -186,8 +186,10 @@
                                     <button
                                         type="submit"
                                         class="text-red-600 hover:text-red-900"
-                                        onclick="return confirm('Are you sure?')"
-                                        >Delete</button
+                                        onclick={(e) => {
+                                            if (!confirm("Are you sure?"))
+                                                e.preventDefault();
+                                        }}>Delete</button
                                     >
                                 </form>
                             </td>
