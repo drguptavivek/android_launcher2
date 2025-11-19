@@ -18,8 +18,8 @@ fun RegistrationScreen() {
     var isLoading by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    // Hardcoded for emulator to host machine
-    val baseUrl = "http://10.0.2.2:5173/" 
+    // Using localhost with adb reverse tcp:5173 tcp:5173
+    val baseUrl = "http://localhost:5173/" 
 
     Column(
         modifier = Modifier.fillMaxSize(),
