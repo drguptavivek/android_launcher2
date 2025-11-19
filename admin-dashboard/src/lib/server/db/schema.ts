@@ -15,3 +15,4 @@ export const users = sqliteTable('users', {
     role: text('role').notNull().default('child'),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });
+
