@@ -4,14 +4,18 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.example.launcher.LauncherApplication
 import com.example.launcher.data.SessionManager
+import com.example.launcher.data.db.TelemetryEntity
 import com.example.launcher.data.network.ApiService
 import com.example.launcher.data.network.TelemetryEvent
 import com.example.launcher.data.network.TelemetryRequest
 import com.google.android.gms.location.LocationServices
+import com.google.gson.Gson
 import kotlinx.coroutines.tasks.await
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -86,27 +90,71 @@ class TelemetryWorker(
             }
         }
 
-        // 3. Send to API
+        // 3. Save to Local DB (Offline First)
+        val application = applicationContext as LauncherApplication
+        val database = application.database
+        val gson = Gson()
+
         if (events.isNotEmpty()) {
-            try {
-                // Note: In a real app, use DI for Retrofit
-                val retrofit = Retrofit.Builder()
-                    .baseUrl("http://localhost:5173/")
-                    .addConverterFactory(GsonConverterFactory.create())
-                    .build()
-                
-                val api = retrofit.create(ApiService::class.java)
-                
-                api.sendTelemetry(
-                    TelemetryRequest(
-                        userId = user.id,
-                        deviceId = deviceId,
-                        events = events
-                    )
+            val entities = events.map { event ->
+                TelemetryEntity(
+                    type = event.type,
+                    dataJson = gson.toJson(event.data),
+                    timestamp = event.timestamp
                 )
-            } catch (e: Exception) {
-                e.printStackTrace()
-                return Result.retry()
+            }
+            database.telemetryDao().insertAll(entities)
+        }
+
+        // 4. Sync with API (Send all unsent events)
+        val allEvents = database.telemetryDao().getAllEvents()
+        
+        if (allEvents.isNotEmpty()) {
+            val sessionManager = SessionManager(applicationContext)
+            val user = sessionManager.getUser()
+            
+            if (user != null) {
+                try {
+                    val apiEvents = allEvents.map { entity ->
+                        val data: Any = if (entity.dataJson.trim().startsWith("[")) {
+                            gson.fromJson(entity.dataJson, List::class.java)
+                        } else {
+                            gson.fromJson(entity.dataJson, Map::class.java)
+                        }
+
+                        TelemetryEvent(
+                            type = entity.type,
+                            data = data,
+                            timestamp = entity.timestamp
+                        )
+                    }
+
+                    val retrofit = Retrofit.Builder()
+                        .baseUrl("http://localhost:5173/")
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .build()
+                    
+                    val api = retrofit.create(ApiService::class.java)
+                    
+                    val request = TelemetryRequest(
+                        userId = user.id,
+                        deviceId = android.os.Build.MODEL,
+                        events = apiEvents
+                    )
+                    
+                    val response = api.sendTelemetry(request)
+                    
+                    if (response.success) {
+                        // Clear synced events from DB
+                        database.telemetryDao().delete(allEvents)
+                        Log.d("TelemetryWorker", "Successfully synced ${allEvents.size} events")
+                    } else {
+                        Log.e("TelemetryWorker", "Failed to sync telemetry: ${response.error}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("TelemetryWorker", "Error syncing telemetry", e)
+                    // Keep events in DB for next retry
+                }
             }
         }
 
