@@ -6,6 +6,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,11 +21,15 @@ import com.example.launcher.data.network.ApiService
 import com.example.launcher.data.network.LogoutRequest
 import com.example.launcher.data.network.UserData
 import com.example.launcher.ui.login.LoginScreen
+import com.example.launcher.ui.settings.SettingsScreen
 import com.example.launcher.worker.TelemetryWorker
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -49,6 +55,7 @@ class MainActivity : ComponentActivity() {
                     // Load initial state from session
                     var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
                     var isLoggedIn by remember { mutableStateOf(currentUser != null) }
+                    var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS
 
                     // Effect to schedule worker when logged in
                     LaunchedEffect(isLoggedIn) {
@@ -68,73 +75,15 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (isLoggedIn && currentUser != null) {
-                        // Show Launcher UI (Placeholder for now)
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Card(
-                                    modifier = Modifier.padding(16.dp)
-                                ) {
-                                    Column(
-                                        modifier = Modifier.padding(16.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        Text(
-                                            text = "User: ${currentUser?.username}",
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                        Text(
-                                            text = "Device: ${android.os.Build.MODEL}",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.height(32.dp))
-                                
-                                // Usage Stats Permission Check
-                                val hasUsageStats = remember {
-                                    val appOps = getSystemService(android.content.Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-                                    val mode = appOps.checkOpNoThrow(
-                                        android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-                                        android.os.Process.myUid(),
-                                        packageName
-                                    )
-                                    mode == android.app.AppOpsManager.MODE_ALLOWED
-                                }
-
-                                if (!hasUsageStats) {
-                                    Button(onClick = {
-                                        startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
-                                    }) {
-                                        Text("Grant Usage Access")
-                                    }
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
-
-                                Text("Welcome to Launcher Home!")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                // Manual Telemetry Trigger (For Testing)
-                                Button(onClick = {
-                                    val workRequest = androidx.work.OneTimeWorkRequestBuilder<TelemetryWorker>().build()
-                                    WorkManager.getInstance(applicationContext).enqueue(workRequest)
-                                }) {
-                                    Text("Send Telemetry Now")
-                                }
-                                
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                Button(onClick = { 
+                        if (currentScreen == "SETTINGS") {
+                            SettingsScreen(
+                                currentUser = currentUser,
+                                onBack = { currentScreen = "HOME" },
+                                onLogout = {
                                     // Trigger logout API call
                                     val userId = currentUser?.id ?: ""
                                     val deviceId = android.os.Build.MODEL
                                     
-                                    // Launch coroutine to call logout
                                     GlobalScope.launch {
                                         try {
                                             val retrofit = Retrofit.Builder()
@@ -148,12 +97,45 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    // Clear session
                                     sessionManager.clearUser()
                                     isLoggedIn = false 
                                     currentUser = null
-                                }) {
-                                    Text("Logout")
+                                    currentScreen = "HOME"
+                                }
+                            )
+                        } else {
+                            // HOME SCREEN
+                            Scaffold(
+                                topBar = {
+                                    @OptIn(ExperimentalMaterial3Api::class)
+                                    TopAppBar(
+                                        title = {
+                                            Column {
+                                                Text(
+                                                    text = currentUser?.username ?: "",
+                                                    style = MaterialTheme.typography.titleMedium
+                                                )
+                                                Text(
+                                                    text = "${android.os.Build.MODEL} • Login: ${SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(currentUser?.loginTime ?: 0))}",
+                                                    style = MaterialTheme.typography.bodySmall
+                                                )
+                                            }
+                                        },
+                                        actions = {
+                                            IconButton(onClick = { currentScreen = "SETTINGS" }) {
+                                                Icon(androidx.compose.material.icons.Icons.Default.Settings, contentDescription = "Settings")
+                                            }
+                                        }
+                                    )
+                                }
+                            ) { padding ->
+                                Box(
+                                    modifier = Modifier
+                                        .padding(padding)
+                                        .fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("Welcome to Launcher Home!")
                                 }
                             }
                         }

@@ -34,7 +34,8 @@ data class LoginResponse(
 data class UserData(
     val id: String,
     val username: String,
-    val role: String
+    val role: String,
+    val loginTime: Long = System.currentTimeMillis()
 )
 
 data class TelemetryEvent(
