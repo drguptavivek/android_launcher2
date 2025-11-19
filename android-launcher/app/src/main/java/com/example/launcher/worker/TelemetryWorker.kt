@@ -57,8 +57,34 @@ class TelemetryWorker(
             }
         }
 
-        // 2. Collect Usage Stats (Placeholder for now)
-        // ...
+        // 2. Collect Usage Stats
+        val usageStatsManager = applicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as android.app.usage.UsageStatsManager
+        val endTime = System.currentTimeMillis()
+        val startTime = endTime - 1000 * 60 * 60 * 24 // Last 24 hours
+
+        val usageStatsList = usageStatsManager.queryUsageStats(
+            android.app.usage.UsageStatsManager.INTERVAL_DAILY, startTime, endTime
+        )
+
+        if (usageStatsList != null && usageStatsList.isNotEmpty()) {
+            val sortedStats = usageStatsList.sortedByDescending { it.totalTimeInForeground }
+            val topApps = sortedStats.take(5).map { 
+                mapOf(
+                    "packageName" to it.packageName,
+                    "totalTime" to it.totalTimeInForeground
+                )
+            }
+            
+            if (topApps.isNotEmpty()) {
+                events.add(
+                    TelemetryEvent(
+                        type = "APP_USAGE",
+                        data = topApps,
+                        timestamp = System.currentTimeMillis()
+                    )
+                )
+            }
+        }
 
         // 3. Send to API
         if (events.isNotEmpty()) {

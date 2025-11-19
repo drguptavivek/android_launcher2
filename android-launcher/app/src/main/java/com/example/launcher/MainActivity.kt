@@ -96,8 +96,39 @@ class MainActivity : ComponentActivity() {
                                 
                                 Spacer(modifier = Modifier.height(32.dp))
                                 
+                                // Usage Stats Permission Check
+                                val hasUsageStats = remember {
+                                    val appOps = getSystemService(android.content.Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+                                    val mode = appOps.checkOpNoThrow(
+                                        android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                                        android.os.Process.myUid(),
+                                        packageName
+                                    )
+                                    mode == android.app.AppOpsManager.MODE_ALLOWED
+                                }
+
+                                if (!hasUsageStats) {
+                                    Button(onClick = {
+                                        startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                                    }) {
+                                        Text("Grant Usage Access")
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                }
+
                                 Text("Welcome to Launcher Home!")
                                 Spacer(modifier = Modifier.height(16.dp))
+                                
+                                // Manual Telemetry Trigger (For Testing)
+                                Button(onClick = {
+                                    val workRequest = androidx.work.OneTimeWorkRequestBuilder<TelemetryWorker>().build()
+                                    WorkManager.getInstance(applicationContext).enqueue(workRequest)
+                                }) {
+                                    Text("Send Telemetry Now")
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+
                                 Button(onClick = { 
                                     // Trigger logout API call
                                     val userId = currentUser?.id ?: ""
