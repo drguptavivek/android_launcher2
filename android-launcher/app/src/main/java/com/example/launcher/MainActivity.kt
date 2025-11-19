@@ -123,7 +123,7 @@ class MainActivity : ComponentActivity() {
                                         },
                                         actions = {
                                             IconButton(onClick = { currentScreen = "SETTINGS" }) {
-                                                Icon(androidx.compose.material.icons.Icons.Default.Settings, contentDescription = "Settings")
+                                                Icon(Icons.Filled.Settings, contentDescription = "Settings")
                                             }
                                         }
                                     )
