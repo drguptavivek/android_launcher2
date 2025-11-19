@@ -37,6 +37,24 @@ data class UserData(
     val role: String
 )
 
+data class TelemetryEvent(
+    val type: String,
+    val data: Any,
+    val timestamp: Long
+)
+
+data class TelemetryRequest(
+    val userId: String,
+    val deviceId: String,
+    val events: List<TelemetryEvent>
+)
+
+data class TelemetryResponse(
+    val success: Boolean,
+    val count: Int?,
+    val error: String?
+)
+
 interface ApiService {
     @POST("/api/devices/register")
     suspend fun registerDevice(@Body request: RegistrationRequest): RegistrationResponse
@@ -46,4 +64,7 @@ interface ApiService {
 
     @POST("/api/auth/logout")
     suspend fun logout(@Body request: LogoutRequest): LoginResponse
+
+    @POST("/api/telemetry")
+    suspend fun sendTelemetry(@Body request: TelemetryRequest): TelemetryResponse
 }

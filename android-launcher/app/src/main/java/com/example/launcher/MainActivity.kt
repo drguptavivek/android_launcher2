@@ -1,93 +1,135 @@
+
 package com.example.launcher
 
+import android.Manifest
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.launcher.ui.registration.RegistrationScreen
-import kotlinx.coroutines.launch
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.launcher.data.SessionManager
+import com.example.launcher.data.network.ApiService
+import com.example.launcher.data.network.LogoutRequest
+import com.example.launcher.data.network.UserData
+import com.example.launcher.ui.login.LoginScreen
+import com.example.launcher.worker.TelemetryWorker
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val sessionManager = SessionManager(this)
+        
+        // Request permissions
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+        
+        requestPermissions(permissions, 0)
+
         setContent {
             MaterialTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    var isLoggedIn by remember { mutableStateOf(false) }
-                    var currentUser by remember { mutableStateOf<com.example.launcher.data.network.UserData?>(null) }
+                    // Load initial state from session
+                    var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
+                    var isLoggedIn by remember { mutableStateOf(currentUser != null) }
+
+                    // Effect to schedule worker when logged in
+                    LaunchedEffect(isLoggedIn) {
+                        if (isLoggedIn) {
+                            val workRequest = PeriodicWorkRequestBuilder<TelemetryWorker>(
+                                15, TimeUnit.MINUTES
+                            ).build()
+                            
+                            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                                "telemetry_work",
+                                ExistingPeriodicWorkPolicy.UPDATE,
+                                workRequest
+                            )
+                        } else {
+                            WorkManager.getInstance(applicationContext).cancelUniqueWork("telemetry_work")
+                        }
+                    }
 
                     if (isLoggedIn && currentUser != null) {
                         // Show Launcher UI (Placeholder for now)
-                        androidx.compose.foundation.layout.Box(
+                        Box(
                             modifier = Modifier.fillMaxSize(),
-                            contentAlignment = androidx.compose.ui.Alignment.Center
+                            contentAlignment = Alignment.Center
                         ) {
-                            androidx.compose.foundation.layout.Column(
-                                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                androidx.compose.material3.Card(
+                                Card(
                                     modifier = Modifier.padding(16.dp)
                                 ) {
-                                    androidx.compose.foundation.layout.Column(
+                                    Column(
                                         modifier = Modifier.padding(16.dp),
-                                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
-                                        androidx.compose.material3.Text(
+                                        Text(
                                             text = "User: ${currentUser?.username}",
-                                            style = androidx.compose.material3.MaterialTheme.typography.titleMedium
+                                            style = MaterialTheme.typography.titleMedium
                                         )
-                                        androidx.compose.material3.Text(
+                                        Text(
                                             text = "Device: ${android.os.Build.MODEL}",
-                                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                                            style = MaterialTheme.typography.bodyMedium
                                         )
                                     }
                                 }
                                 
-                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(32.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
                                 
-                                androidx.compose.material3.Text("Welcome to Launcher Home!")
-                                androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
-                                androidx.compose.material3.Button(onClick = { 
+                                Text("Welcome to Launcher Home!")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(onClick = { 
                                     // Trigger logout API call
                                     val userId = currentUser?.id ?: ""
                                     val deviceId = android.os.Build.MODEL
                                     
                                     // Launch coroutine to call logout
-                                    // Note: In a real app, this should be in a ViewModel
-                                    kotlinx.coroutines.GlobalScope.launch {
+                                    GlobalScope.launch {
                                         try {
-                                            val retrofit = retrofit2.Retrofit.Builder()
+                                            val retrofit = Retrofit.Builder()
                                                 .baseUrl("http://localhost:5173/")
-                                                .addConverterFactory(retrofit2.converter.gson.GsonConverterFactory.create())
+                                                .addConverterFactory(GsonConverterFactory.create())
                                                 .build()
-                                            val api = retrofit.create(com.example.launcher.data.network.ApiService::class.java)
-                                            api.logout(com.example.launcher.data.network.LogoutRequest(userId, deviceId))
+                                            val api = retrofit.create(ApiService::class.java)
+                                            api.logout(LogoutRequest(userId, deviceId))
                                         } catch (e: Exception) {
                                             e.printStackTrace()
                                         }
                                     }
 
+                                    // Clear session
+                                    sessionManager.clearUser()
                                     isLoggedIn = false 
                                     currentUser = null
                                 }) {
-                                    androidx.compose.material3.Text("Logout")
+                                    Text("Logout")
                                 }
                             }
                         }
                     } else {
-                        com.example.launcher.ui.login.LoginScreen(
+                        LoginScreen(
                             onLoginSuccess = { user ->
+                                sessionManager.saveUser(user)
                                 currentUser = user
                                 isLoggedIn = true
                             }
