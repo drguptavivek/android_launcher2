@@ -217,7 +217,7 @@
 	{#if step === 'form'}
 		<div transition:fade>
 			<div class="p-6">
-				<h2 class="text-xl font-bold text-gray-900">Register a New Device</h2>
+				<h2 id="modal-title" class="text-xl font-bold text-gray-900">Register a New Device</h2>
 				<p class="mt-1 text-sm text-gray-600">
 					Provide a short description for the device, then generate a registration code to enter on
 					the device itself.
@@ -270,7 +270,7 @@
 		</div>
 	{:else if step === 'code'}
 		<div transition:fade class="p-6 text-center">
-			<h2 class="text-xl font-bold text-gray-900">Enter Code on Device</h2>
+			<h2 id="modal-title" class="text-xl font-bold text-gray-900">Enter Code on Device</h2>
 			<p class="mt-1 text-sm text-gray-600">
 				Enter the following code on your device to complete the registration.
 			</p>
