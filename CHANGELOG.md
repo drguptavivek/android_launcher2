@@ -60,6 +60,34 @@ All notable changes to this project will be documented in this file.
         - Sends device ID (Build.MODEL) with login requests.
         - Calls logout API on user logout action.
 
+## [0.3.0] - 2025-11-19
+
+### Added
+- **Backend (SvelteKit)**:
+    - Telemetry API:
+        - Generic `/api/telemetry` endpoint for batch event ingestion.
+        - Supports `LOCATION` and `APP_USAGE` event types.
+    - Telemetry Dashboard:
+        - New `/telemetry` page to view real-time device events.
+        - Displays event type, user/device, timestamp, and raw data.
+- **Android Client**:
+    - Background Data Collection:
+        - Implemented `TelemetryWorker` using WorkManager (runs every 15 min).
+        - Collects GPS Location (Latitude, Longitude, Accuracy).
+        - Collects App Usage Stats (Top 5 apps by usage time).
+    - Permissions & Privacy:
+        - Added `ACCESS_FINE_LOCATION` and `ACCESS_COARSE_LOCATION`.
+        - Added `PACKAGE_USAGE_STATS` permission logic.
+        - UI prompts user to grant Usage Access in system settings.
+    - Session Management:
+        - Created `SessionManager` to persist user session and device ID.
+        - Auto-schedules telemetry worker upon login.
+
+### Changed
+- **Android**:
+    - `MainActivity` now checks for Usage Stats permission and shows a "Grant" button if missing.
+    - Added "Send Telemetry Now" button for easier testing.
+
 ### Fixed
 - **Backend**:
     - Fixed Svelte compilation error with invalid onclick handler syntax.
