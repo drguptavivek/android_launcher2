@@ -102,3 +102,21 @@ All notable changes to this project will be documented in this file.
     - Replaced default SvelteKit welcome page with custom dashboard.
     - Enhanced device listing with modern card-based design.
     - Added user avatar placeholders in user management UI.
+
+
+
+Telemetry now works (offline‑first + sync)
+
+What was fixed
+JSON parsing error – 
+
+TelemetryWorker
+ tried to read every event’s dataJson as a Map, but some events are arrays.
+Added logic to detect whether the stored JSON starts with [ (array) or { (object) and deserialize accordingly.
+Improved logging – Errors now show the exact cause, and successful sync logs the number of events sent.
+How to test the whole flow
+1️⃣ Verify normal (online) telemetry
+Make sure the admin‑dashboard (npm run dev) is running at http://localhost:5173.
+Launch the Android app (already installed).
+Open Settings → tap “Send Telemetry Now”.
+Open the dashboard → Telemetry page. You should see the new event(s) appear instantly.
