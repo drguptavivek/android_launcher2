@@ -68,6 +68,9 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
+                // Theme selection (persisted)
+                var colorTheme by remember { mutableStateOf(sessionManager.getTheme() ?: "deepBlue") }
+
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
