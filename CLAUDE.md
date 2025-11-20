@@ -71,12 +71,22 @@ adb wait-for-device
 adb shell 'while [[ "$(getprop sys.boot_completed)" != "1" ]]; do sleep 1; done; echo "booted"'
 
 
-adb install -r ODK-Collect-v2025.3.3.apk
 
 adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
 
 adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
 adb shell dpm set-device-owner   edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver.
+
+
+adb install -r ODK-Collect-v2025.3.3.apk
+
+adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
+
+adb shell dpm set-device-owner edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver
+
+adb shell cmd package set-home-activity edu.aiims.surveylauncher/com.example.launcher.MainActivity
+
+
 
 # Reverse proxy for local API testing
 adb reverse tcp:5173 tcp:5173 
