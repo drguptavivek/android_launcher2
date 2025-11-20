@@ -16,6 +16,7 @@ class SessionManager(context: Context) {
         private const val KEY_REGISTRATION_TIMESTAMP = "registration_timestamp"
         private const val KEY_IS_REGISTERED = "is_registered"
         private const val KEY_POLICY = "policy_config"
+        private const val KEY_THEME = "theme"
     }
 
     fun saveUser(user: UserData) {
@@ -76,5 +77,13 @@ class SessionManager(context: Context) {
 
     fun getPolicy(): String? {
         return prefs.getString(KEY_POLICY, null)
+    }
+
+    fun saveTheme(themeKey: String) {
+        prefs.edit().putString(KEY_THEME, themeKey).apply()
+    }
+
+    fun getTheme(): String? {
+        return prefs.getString(KEY_THEME, null)
     }
 }

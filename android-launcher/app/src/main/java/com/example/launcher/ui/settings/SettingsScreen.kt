@@ -33,7 +33,9 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onReset: () -> Unit,
-    onChangePin: () -> Unit
+    onChangePin: () -> Unit,
+    currentTheme: String,
+    onThemeChange: (String) -> Unit
 ) {
     val context = LocalContext.current
     val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
@@ -41,6 +43,13 @@ fun SettingsScreen(
     var syncStatus by remember { mutableStateOf("") }
     var isSyncing by remember { mutableStateOf(false) }
     var policyName by remember { mutableStateOf(extractPolicyName(sessionManager.getPolicy())) }
+    var selectedTheme by remember { mutableStateOf(currentTheme) }
+    var themeMenuExpanded by remember { mutableStateOf(false) }
+    val themeOptions = listOf(
+        "deepBlue" to "Deep Blue",
+        "sunset" to "Sunset Glow",
+        "forest" to "Forest"
+    )
     
     Scaffold(
         topBar = {
@@ -109,6 +118,42 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Usage Access Granted ✅")
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Appearance Section
+            Text("Appearance", style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            ExposedDropdownMenuBox(
+                expanded = themeMenuExpanded,
+                onExpandedChange = { themeMenuExpanded = !themeMenuExpanded }
+            ) {
+                OutlinedTextField(
+                    value = themeOptions.find { it.first == selectedTheme }?.second ?: "Deep Blue",
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Accent Theme") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = themeMenuExpanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth()
+                )
+                ExposedDropdownMenu(
+                    expanded = themeMenuExpanded,
+                    onDismissRequest = { themeMenuExpanded = false }
+                ) {
+                    themeOptions.forEach { (key, label) ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                selectedTheme = key
+                                themeMenuExpanded = false
+                                onThemeChange(key)
+                            }
+                        )
+                    }
                 }
             }
 

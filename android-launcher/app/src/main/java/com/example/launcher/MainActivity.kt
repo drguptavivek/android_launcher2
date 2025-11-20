@@ -6,13 +6,20 @@ import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
@@ -31,6 +38,9 @@ import com.example.launcher.ui.home.AppDrawer
 import com.example.launcher.util.KioskManager
 import com.example.launcher.util.PinManager
 import com.example.launcher.worker.TelemetryWorker
+import coil.compose.rememberAsyncImagePainter
+import coil.decode.SvgDecoder
+import coil.request.ImageRequest
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import retrofit2.Retrofit
@@ -58,16 +68,51 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             MaterialTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                colors = when (colorTheme) {
+                                    "sunset" -> listOf(Color(0xFF43114B), Color(0xFF763462), Color(0xFFB05C5E))
+                                    "forest" -> listOf(Color(0xFF0B2E26), Color(0xFF14593B), Color(0xFF2A7D4A))
+                                    else -> listOf(Color(0xFF0F1F3A), Color(0xFF0A3342), Color(0xFF123B5A))
+                                }
+                            )
+                        )
                 ) {
+                    val painter = rememberAsyncImagePainter(
+                        ImageRequest.Builder(LocalContext.current)
+                            .data("file:///android_asset/aiims_logo_currentcolor.svg")
+                            .decoderFactory(SvgDecoder.Factory())
+                            .build()
+                    )
+                    Image(
+                        painter = painter,
+                        contentDescription = "AIIMS Logo Backdrop",
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .fillMaxSize(0.7f)
+                            .graphicsLayer { alpha = 0.06f },
+                        contentScale = ContentScale.Fit
+                    )
+
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(12.dp),
+                        color = Color.White.copy(alpha = 0.06f),
+                        tonalElevation = 12.dp,
+                        shape = MaterialTheme.shapes.large,
+                        border = ButtonDefaults.outlinedButtonBorder
+                    ) {
                     // Load initial state from session
                     var isDeviceRegistered by remember { mutableStateOf(sessionManager.isDeviceRegistered()) }
                     var isPinSet by remember { mutableStateOf(pinManager.isPinSet()) }
                     var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
                     var isLoggedIn by remember { mutableStateOf(currentUser != null) }
                     var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS, PIN_CHANGE
+                    var colorTheme by remember { mutableStateOf(sessionManager.getTheme() ?: "deepBlue") }
 
                     // Effect to schedule worker when logged in
                     LaunchedEffect(isLoggedIn) {
@@ -188,6 +233,7 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
+                }
                 }
             }
         }

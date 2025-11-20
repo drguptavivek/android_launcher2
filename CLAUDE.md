@@ -76,6 +76,7 @@ adb install -r ODK-Collect-v2025.3.3.apk
 adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
 
 adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+adb shell dpm set-device-owner   edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver.
 
 # Reverse proxy for local API testing
 adb reverse tcp:5173 tcp:5173 
