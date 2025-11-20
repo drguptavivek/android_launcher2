@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -96,8 +97,9 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .align(Alignment.Center)
                             .fillMaxSize(0.7f)
-                            .graphicsLayer { alpha = 0.06f },
-                        contentScale = ContentScale.Fit
+                            .graphicsLayer { alpha = 0.12f },
+                        contentScale = ContentScale.Fit,
+                        colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.2f))
                     )
 
                     Surface(

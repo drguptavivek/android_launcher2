@@ -42,7 +42,7 @@ fun SettingsScreen(
     val coroutineScope = rememberCoroutineScope()
     var syncStatus by remember { mutableStateOf("") }
     var isSyncing by remember { mutableStateOf(false) }
-    var policyName by remember { mutableStateOf(extractPolicyName(sessionManager.getPolicy())) }
+    var policyName by remember { mutableStateOf(sessionManager.getPolicyName() ?: extractPolicyName(sessionManager.getPolicy()) ?: "Default (local)") }
     var selectedTheme by remember { mutableStateOf(currentTheme) }
     var themeMenuExpanded by remember { mutableStateOf(false) }
     val themeOptions = listOf(
@@ -207,7 +207,9 @@ fun SettingsScreen(
                             // Parse and apply
                             val gson = Gson()
                             val policy = gson.fromJson(policyResponse.config, PolicyConfig::class.java)
-                            policyName = policy.name ?: policyResponse.name
+                            val resolvedName = policy.name ?: policyResponse.name ?: "Default (local)"
+                            policyName = resolvedName
+                            sessionManager.savePolicyName(resolvedName)
                             
                             // Update KioskManager - merge defaults + policy + aiims packages, then apply
                             val kioskManager = KioskManager(context)
