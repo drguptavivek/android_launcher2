@@ -101,9 +101,28 @@ adb shell 'while [[ "$(getprop sys.boot_completed)" != "1" ]]; do sleep 1; done;
 
 adb install -r ODK-Collect-v2025.3.3.apk
 
+cd android-launcher
 adb install -r ../ODK-Collect-v2025.3.3.apk
-adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+
 adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+
+
+# 5. Install launcher APK and set DO again:
+adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
+
+adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+
+adb shell cmd package set-home-activity com.example.launcher/.MainActivity
+    
+   #   - Optional: 
+adb shell dumpsys device_policy | grep -A5 'Lock task' 
+adb shell dumpsys device_policy | sed -n '/LockTaskPolicy/,+8p'
+adb shell dumpsys device_policy | grep -A8 -i locktask
+
+adb shell dumpsys activity  activities | grep mLockTaskModeState 
+   # to verify whitelisted packages and locked state.
+
 
 # Reverse proxy for local API testing
 adb reverse tcp:5173 tcp:5173 

@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.launcher.data.SessionManager
 import com.example.launcher.data.network.PolicyConfig
+import com.example.launcher.util.KioskManager
 import com.google.gson.Gson
 
 data class AppInfo(
@@ -39,24 +40,29 @@ fun AppDrawer() {
             val gson = Gson()
             val policy = gson.fromJson(policyJson, PolicyConfig::class.java)
             android.util.Log.d("AppDrawer", "Policy loaded: ${policy.allowedApps.size} allowed apps")
-            policy.allowedApps
+            policy.allowedApps.ifEmpty {
+                android.util.Log.d("AppDrawer", "Policy allow-list empty, using default kiosk allow-list")
+                KioskManager.DEFAULT_ALLOWED_PACKAGES
+            }
         } catch (e: Exception) {
-            android.util.Log.e("AppDrawer", "Error parsing policy", e)
-            emptyList()
+            android.util.Log.e("AppDrawer", "Error parsing policy, using default allow-list", e)
+            KioskManager.DEFAULT_ALLOWED_PACKAGES
         }
     } else {
-        android.util.Log.d("AppDrawer", "No policy found")
-        emptyList()
+        android.util.Log.d("AppDrawer", "No policy found, using default kiosk allow-list")
+        KioskManager.DEFAULT_ALLOWED_PACKAGES
     }
+
+    // Dynamically include any installed edu.aiims.* packages
+    val aiimsPackages = remember { getAiimsPackages(context) }
+    val effectiveAllowedApps = (allowedApps + aiimsPackages).distinct()
     
     // Filter apps based on policy
-    val filteredApps = if (allowedApps.isNotEmpty()) {
-        val filtered = installedApps.filter { app -> allowedApps.contains(app.packageName) }
-        android.util.Log.d("AppDrawer", "Filtered ${filtered.size} apps from ${installedApps.size} installed")
-        filtered
-    } else {
-        installedApps // Show all if no policy
-    }
+    val filteredApps = installedApps
+        .filter { app -> effectiveAllowedApps.contains(app.packageName) }
+        .also { filtered ->
+            android.util.Log.d("AppDrawer", "Filtered ${filtered.size} apps from ${installedApps.size} installed")
+        }
     
     Column(
         modifier = Modifier
@@ -218,6 +224,17 @@ fun getInstalledApps(context: Context): List<AppInfo> {
     }
     
     return sortedApps
+}
+
+private fun getAiimsPackages(context: Context): List<String> {
+    return try {
+        context.packageManager.getInstalledPackages(0)
+            .map { it.packageName }
+            .filter { it.startsWith("edu.aiims.") }
+    } catch (e: Exception) {
+        android.util.Log.e("AppDrawer", "Error collecting edu.aiims.* packages", e)
+        emptyList()
+    }
 }
 
 fun launchApp(context: Context, packageName: String) {

@@ -70,18 +70,19 @@ This phase focuses on defining rules (policies) for devices/users and enforcing 
     - Created `PinSetupScreen` UI (shown after first login).
     - Created `PinLockScreen` UI (shown when launching apps).
     - Integrated PIN flow into MainActivity.
-- [ ] **Policy Sync & Enforcement**:
+- [x] **Policy Enforcement (local/default)**:
+    - [x] Apply lock task allow-list before starting kiosk (multi-app).
+    - [x] Default allow-list when no policy present (launcher, ODK, WhatsApp/Business, dialer/messaging variants, Gmail, Firefox, Chrome, REDCap, Settings), plus auto-allow installed `edu.aiims.*` apps.
+    - [x] App drawer now filters strictly to the allow-list (no show-all fallback).
+- [ ] **Policy Sync**:
     - [ ] Update `TelemetryWorker` to fetch policy from `/api/sync/:deviceId`.
     - [ ] Store policy locally (Room or Prefs).
-    - [ ] **Kiosk Logic**: Filter app drawer based on "Allowed Apps" list.
-    - [ ] **Enable Kiosk Mode**: Call `startLockTask()` in MainActivity.onResume().
 
 ### Next Steps
 1. Set Device Owner: `adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver`
-2. Implement policy sync in TelemetryWorker
-3. Enable Kiosk mode on app launch
-4. Filter app drawer based on synced policy
-5. End-to-end testing
+2. Implement policy sync in TelemetryWorker and persist locally
+3. Validate multi-app kiosk allow-list on first launch; adjust OEM package names if needed
+4. End-to-end testing
 
 ---
 

@@ -212,6 +212,13 @@ class MainActivity : ComponentActivity() {
                 android.util.Log.d("MainActivity", "Using fixed allow-list: $allowed")
             }
 
+            // Automatically allow any installed edu.aiims.* apps
+            val aiimsPackages = getAiimsPackages(this)
+            if (aiimsPackages.isNotEmpty()) {
+                allowed = (allowed + aiimsPackages).distinct()
+                android.util.Log.d("MainActivity", "Added edu.aiims.* packages: $aiimsPackages")
+            }
+
             // Always refresh the allow-list even if already pinned.
             kioskManager.applyLockTaskAllowList(allowed)
 
@@ -229,6 +236,17 @@ class MainActivity : ComponentActivity() {
             }
             
             kioskManager.setSystemRestrictions(true)
+        }
+    }
+
+    private fun getAiimsPackages(context: Context): List<String> {
+        return try {
+            context.packageManager.getInstalledPackages(0)
+                .map { it.packageName }
+                .filter { it.startsWith("edu.aiims.") }
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error collecting edu.aiims.* packages", e)
+            emptyList()
         }
     }
 }

@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2025-11-20
+
+### Added
+- **Android Launcher**:
+    - Default multi-app kiosk allow-list when no remote policy is present (launcher, ODK, WhatsApp/Business, dialer/messaging variants, Gmail, Firefox, Chrome, REDCap, Settings); auto-allow any installed `edu.aiims.*` apps.
+    - Launcher app grid now strictly filters to the allow-list (no show-all fallback).
+
+### Changed
+- **Android Launcher**:
+    - Apply lock task packages before entering kiosk mode to honor the allow-list.
+    - Whitelisted Settings (AOSP + Google) for supervised access under kiosk.
+
 ## [0.6.0] - 2025-11-19
 
 ### Changed
