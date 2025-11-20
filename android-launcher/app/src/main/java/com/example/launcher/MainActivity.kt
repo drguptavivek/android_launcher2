@@ -192,6 +192,10 @@ class MainActivity : ComponentActivity() {
                                 onThemeChange = { theme ->
                                     colorTheme = theme
                                     sessionManager.saveTheme(theme)
+                                },
+                                onBackToHome = {
+                                    kioskManager.stopKioskMode(this@MainActivity)
+                                    currentScreen = "HOME"
                                 }
                             )
                         } else if (currentScreen == "PIN_CHANGE") {

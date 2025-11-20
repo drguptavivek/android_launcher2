@@ -37,7 +37,8 @@ fun SettingsScreen(
     onReset: () -> Unit,
     onChangePin: () -> Unit,
     currentTheme: String,
-    onThemeChange: (String) -> Unit
+    onThemeChange: (String) -> Unit,
+    onBackToHome: () -> Unit
 ) {
     val context = LocalContext.current
     val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
@@ -170,6 +171,15 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Change PIN")
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Back to Home / release kiosk
+            Button(
+                onClick = onBackToHome,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Back to Home")
             }
             Spacer(modifier = Modifier.height(24.dp))
 

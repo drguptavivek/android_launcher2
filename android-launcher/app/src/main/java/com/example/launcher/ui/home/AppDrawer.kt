@@ -1,5 +1,6 @@
 package com.example.launcher.ui.home
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -250,6 +251,15 @@ private fun getAiimsPackages(context: Context): List<String> {
 }
 
 fun launchApp(context: Context, packageName: String) {
+    // If launching system Settings, temporarily release lock task so Home works there.
+    if (packageName == "com.android.settings" || packageName == "com.google.android.settings") {
+        val activity = context as? Activity
+        val kioskManager = KioskManager(context)
+        if (activity != null && kioskManager.isDeviceOwner()) {
+            kioskManager.stopKioskMode(activity)
+        }
+    }
+
     val intent = context.packageManager.getLaunchIntentForPackage(packageName)
     if (intent != null) {
         // Add FLAG_ACTIVITY_NEW_TASK for lock task mode compatibility
