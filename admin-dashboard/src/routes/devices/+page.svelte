@@ -1,26 +1,26 @@
 <script lang="ts">
-	import Modal from '$lib/components/Modal.svelte';
-	import { fade } from 'svelte/transition';
-	import { invalidateAll } from '$app/navigation';
+	import Modal from "$lib/components/Modal.svelte";
+	import { fade } from "svelte/transition";
+	import { invalidateAll } from "$app/navigation";
 
 	let { data } = $props();
 
 	let showAddDeviceModal = $state(false);
-	let description = $state('');
-	let step = $state<'form' | 'code'>('form');
+	let description = $state("");
+	let step = $state<"form" | "code">("form");
 
-	let code = $state('');
+	let code = $state("");
 	let expiresAt = $state<Date | null>(null);
 	let error = $state<string | null>(null);
 	let loading = $state(false);
 
 	let interval: ReturnType<typeof setInterval>;
-	let countdown = $state('');
+	let countdown = $state("");
 
 	function openAddDeviceModal() {
-		description = '';
-		step = 'form';
-		code = '';
+		description = "";
+		step = "form";
+		code = "";
 		expiresAt = null;
 		error = null;
 		loading = false;
@@ -38,21 +38,21 @@
 		error = null;
 
 		try {
-			const res = await fetch('/api/devices/register/generate-code', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ description })
+			const res = await fetch("/api/devices/register/generate-code", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ description }),
 			});
 
 			if (!res.ok) {
 				const { message } = await res.json();
-				throw new Error(message || 'Failed to generate code');
+				throw new Error(message || "Failed to generate code");
 			}
 
 			const result = await res.json();
 			code = result.code;
 			expiresAt = new Date(result.expiresAt);
-			step = 'code';
+			step = "code";
 			startCountdown();
 		} catch (e: any) {
 			error = e.message;
@@ -63,7 +63,7 @@
 
 	function startCountdown() {
 		if (!expiresAt) {
-			countdown = 'Expired'; // Handle immediately if null
+			countdown = "Expired"; // Handle immediately if null
 			return;
 		}
 
@@ -74,17 +74,35 @@
 			}
 			const diff = expiresAt.getTime() - Date.now();
 			if (diff <= 0) {
-				countdown = 'Expired';
+				countdown = "Expired";
 				clearInterval(interval);
 				return;
 			}
 			const minutes = Math.floor(diff / 1000 / 60);
 			const seconds = Math.floor((diff / 1000) % 60);
-			countdown = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+			countdown = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 		};
 
 		update();
 		interval = setInterval(update, 1000);
+	}
+	async function assignPolicy(deviceId: number, policyId: string) {
+		if (!policyId) return;
+		try {
+			const res = await fetch(`/api/devices/${deviceId}/policy`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ policyId }),
+			});
+			if (res.ok) {
+				alert("Policy assigned successfully");
+			} else {
+				alert("Failed to assign policy");
+			}
+		} catch (e) {
+			console.error(e);
+			alert("Error assigning policy");
+		}
 	}
 </script>
 
@@ -104,7 +122,9 @@
 		</button>
 	</div>
 
-	<div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+	<div
+		class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden"
+	>
 		<div class="overflow-x-auto">
 			<table class="min-w-full divide-y divide-gray-200">
 				<thead class="bg-gray-50">
@@ -128,6 +148,11 @@
 							scope="col"
 							class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
 							>Status</th
+						>
+						<th
+							scope="col"
+							class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+							>Policy</th
 						>
 						<th scope="col" class="relative px-6 py-3">
 							<span class="sr-only">Actions</span>
@@ -157,7 +182,9 @@
 										</svg>
 									</div>
 									<div class="ml-4">
-										<div class="text-sm font-medium text-gray-900">
+										<div
+											class="text-sm font-medium text-gray-900"
+										>
 											{device.model}
 										</div>
 										<div class="text-sm text-gray-500">
@@ -173,7 +200,9 @@
 									Android {device.androidVersion}
 								</span>
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+							<td
+								class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+							>
 								{device.registeredAt?.toLocaleString()}
 							</td>
 							<td class="px-6 py-4 whitespace-nowrap">
@@ -183,8 +212,30 @@
 									Active
 								</span>
 							</td>
-							<td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-								<button class="text-indigo-600 hover:text-indigo-900">Edit</button>
+							<td class="px-6 py-4 whitespace-nowrap">
+								<select
+									class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+									onchange={(e) =>
+										assignPolicy(
+											device.id,
+											e.currentTarget.value,
+										)}
+								>
+									<option value="">Select Policy</option>
+									{#each data.policies as policy}
+										<option value={policy.id}
+											>{policy.name}</option
+										>
+									{/each}
+								</select>
+							</td>
+							<td
+								class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+							>
+								<button
+									class="text-indigo-600 hover:text-indigo-900"
+									>Edit</button
+								>
 							</td>
 						</tr>
 					{/each}
@@ -206,25 +257,34 @@
 						d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
 					/>
 				</svg>
-				<h3 class="mt-2 text-sm font-medium text-gray-900">No devices</h3>
-				<p class="mt-1 text-sm text-gray-500">Get started by registering a new device.</p>
+				<h3 class="mt-2 text-sm font-medium text-gray-900">
+					No devices
+				</h3>
+				<p class="mt-1 text-sm text-gray-500">
+					Get started by registering a new device.
+				</p>
 			</div>
 		{/if}
 	</div>
 </div>
 
 <Modal show={showAddDeviceModal} onClose={closeAddDeviceModal}>
-	{#if step === 'form'}
+	{#if step === "form"}
 		<div transition:fade>
 			<div class="p-6">
-				<h2 id="modal-title" class="text-xl font-bold text-gray-900">Register a New Device</h2>
+				<h2 id="modal-title" class="text-xl font-bold text-gray-900">
+					Register a New Device
+				</h2>
 				<p class="mt-1 text-sm text-gray-600">
-					Provide a short description for the device, then generate a registration code to enter on
-					the device itself.
+					Provide a short description for the device, then generate a
+					registration code to enter on the device itself.
 				</p>
 
 				<div class="mt-6">
-					<label for="description" class="block text-sm font-medium text-gray-700">
+					<label
+						for="description"
+						class="block text-sm font-medium text-gray-700"
+					>
 						Description
 					</label>
 					<div class="mt-1">
@@ -268,11 +328,14 @@
 				</div>
 			</div>
 		</div>
-	{:else if step === 'code'}
+	{:else if step === "code"}
 		<div transition:fade class="p-6 text-center">
-			<h2 id="modal-title" class="text-xl font-bold text-gray-900">Enter Code on Device</h2>
+			<h2 id="modal-title" class="text-xl font-bold text-gray-900">
+				Enter Code on Device
+			</h2>
 			<p class="mt-1 text-sm text-gray-600">
-				Enter the following code on your device to complete the registration.
+				Enter the following code on your device to complete the
+				registration.
 			</p>
 
 			<div
@@ -282,7 +345,9 @@
 			</div>
 
 			<p class="text-sm text-gray-500">
-				Code expires in: <span class="font-medium text-gray-700">{countdown}</span>
+				Code expires in: <span class="font-medium text-gray-700"
+					>{countdown}</span
+				>
 			</p>
 
 			<div class="mt-8 flex justify-end gap-3">

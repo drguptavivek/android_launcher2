@@ -15,6 +15,7 @@ class SessionManager(context: Context) {
         private const val KEY_DEVICE_DESCRIPTION = "device_description"
         private const val KEY_REGISTRATION_TIMESTAMP = "registration_timestamp"
         private const val KEY_IS_REGISTERED = "is_registered"
+        private const val KEY_POLICY = "policy_config"
     }
 
     fun saveUser(user: UserData) {
@@ -67,5 +68,13 @@ class SessionManager(context: Context) {
             .remove(KEY_REGISTRATION_TIMESTAMP)
             .remove(KEY_IS_REGISTERED)
             .apply()
+    }
+
+    fun savePolicy(policyJson: String) {
+        prefs.edit().putString(KEY_POLICY, policyJson).apply()
+    }
+
+    fun getPolicy(): String? {
+        return prefs.getString(KEY_POLICY, null)
     }
 }

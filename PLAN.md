@@ -7,15 +7,17 @@ Building a custom Android Launcher with a companion SvelteKit Admin Dashboard fo
 
 ## ✅ Completed Phases
 
-### Phase 1: Foundation & Device Registration (v0.1.0 - v0.5.0)
+### Phase 1: Foundation & Device Registration (v0.1.0 - v0.6.0)
 - **Backend**:
   - [x] Project setup with SvelteKit & SQLite (Drizzle).
   - [x] Device Registration API with 5-digit temporary codes.
   - [x] Admin Dashboard for generating codes and viewing devices.
+  - [x] **Update**: Switched to short integer Device IDs (v0.6.0).
 - **Android**:
   - [x] Basic Jetpack Compose Launcher.
   - [x] Registration UI with code input.
   - [x] Secure storage of Device ID and Description.
+  - [x] **Update**: Reset Registration debug button (v0.6.0).
 
 ### Phase 2: Authentication & User Management (v0.2.0)
 - **Backend**:
@@ -37,19 +39,49 @@ Building a custom Android Launcher with a companion SvelteKit Admin Dashboard fo
 
 ---
 
-## 🚀 Current Focus: Phase 4 - Policy Management
+## 🚀 Current Focus: Phase 4 - Policy Management (In Progress)
 
-### Backend (SvelteKit)
-- [ ] **Database Schema**: Define tables for `policies` (time limits, app allow/block lists).
-- [ ] **Policy UI**: Create an interface to assign policies to specific devices or users.
-- [ ] **API**: Implement endpoints to create, update, and fetch policies (`GET /api/policies/:deviceId`).
+This phase focuses on defining rules (policies) for devices/users and enforcing them on the Android client.
 
-### Android Client
-- [ ] **Policy Sync**: Update `TelemetryWorker` or create a new worker to fetch latest policies periodically.
-- [ ] **Enforcement Logic**:
-  - Implement a service to monitor app usage against allowed limits.
-  - Create a blocking overlay for restricted apps or time-out scenarios.
-- [ ] **Local Storage**: Cache policies locally using Room (similar to telemetry).
+### 4.1 Backend Implementation ✅ COMPLETED
+- [x] **Database Schema**:
+    - Created `policies` table: `id`, `name`, `config` (JSON), `createdAt`.
+    - Created `device_policies` table: `deviceId`, `policyId`, `assignedAt`.
+- [x] **Policy Management UI**:
+    - Page to Create/Edit Policies at `/policies`.
+    - JSON Editor for policy config (Allowed Apps, System Toggles).
+    - UI to assign a policy to a registered device.
+- [x] **API Endpoints**:
+    - `GET /api/policies`: List all policies.
+    - `POST /api/policies`: Create new policy.
+    - `POST /api/devices/:id/policy`: Assign policy to device.
+    - `GET /api/sync/:deviceId`: Endpoint for Android to fetch latest policy.
+
+### 4.2 Android Client Implementation (In Progress)
+- [x] **Device Owner Setup**:
+    - Created `LauncherAdminReceiver` (DeviceAdminReceiver).
+    - Created `device_admin.xml` configuration.
+    - Registered receiver in AndroidManifest.xml.
+- [x] **Kiosk Manager**:
+    - Implemented `KioskManager` helper class.
+    - Methods: `enableKioskMode()`, `setAllowedApps()`, `setSystemRestrictions()`.
+- [x] **PIN System**:
+    - Created `PinManager` with EncryptedSharedPreferences.
+    - Created `PinSetupScreen` UI (shown after first login).
+    - Created `PinLockScreen` UI (shown when launching apps).
+    - Integrated PIN flow into MainActivity.
+- [ ] **Policy Sync & Enforcement**:
+    - [ ] Update `TelemetryWorker` to fetch policy from `/api/sync/:deviceId`.
+    - [ ] Store policy locally (Room or Prefs).
+    - [ ] **Kiosk Logic**: Filter app drawer based on "Allowed Apps" list.
+    - [ ] **Enable Kiosk Mode**: Call `startLockTask()` in MainActivity.onResume().
+
+### Next Steps
+1. Set Device Owner: `adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver`
+2. Implement policy sync in TelemetryWorker
+3. Enable Kiosk mode on app launch
+4. Filter app drawer based on synced policy
+5. End-to-end testing
 
 ---
 
@@ -58,7 +90,6 @@ Building a custom Android Launcher with a companion SvelteKit Admin Dashboard fo
 ### Phase 5: Remote Commands & Kiosk Mode
 - [ ] **Remote Lock/Wipe**: Admin triggers commands via FCM or polling.
 - [ ] **Kiosk Mode**: Lock the launcher as the default home app with no exit.
-- [ ] **App Management**: Remote install/uninstall (requires system privileges or MDM).
 
 ### Phase 6: Advanced Analytics
 - [ ] **Usage Reports**: Weekly/Monthly summaries of screen time.

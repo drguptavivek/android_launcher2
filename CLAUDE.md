@@ -57,7 +57,40 @@ adb reverse tcp:5173 tcp:5173  # Reverse proxy for local API testing
 ~/Library/Android/sdk/emulator/emulator -list-avds
 ~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
 
+~/Library/Android/sdk/platform-tools/adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
 
+~/Library/Android/sdk/platform-tools/adb shell am force-stop com.example.launcher 
+~/Library/Android/sdk/platform-tools/adb shell am start -n com.example.launcher/.MainActivity 
+
+
+# 1. Set Device Owner (factory reset device first!)
+~/Library/Android/sdk/platform-tools/adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+# 2. Install app
+cd android-launcher && ./gradlew assembleDebug
+~/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+# 3. Setup port forwarding
+~/Library/Android/sdk/platform-tools/adb reverse tcp:5173 tcp:5173
+
+# 3.b Installing ODK
+~/Library/Android/sdk/platform-tools/adb install -r ODK-Collect-v2025.3.3.apk
+~/Library/Android/sdk/platform-tools/adb shell dumpsys package org.odk.collect.android | grep -A 5 "android.intent.action.MAIN" | head -20
+
+Run it in KIOSL Mode
+~/Library/Android/sdk/platform-tools/adb shell am start -n org.odk.collect.android/.mainmenu.MainMenuActivity
+
+Starting: Intent { cmp=org.odk.collect.android/.mainmenu.MainMenuActivity } Error: Activity not started, unknown error code 101 
+
+Error code 101 - that's the lock task violation! ODK Collect is being blocked by kiosk mode. Let me add it to the policy first:
+
+# 4. Checking Logs, stopping etc
+~/Library/Android/sdk/platform-tools/adb logcat -d 
+
+~/Library/Android/sdk/platform-tools/adb shell am force-stop com.example.launcher && sleep 1 
+~/Library/Android/sdk/platform-tools/adb shell am start -n com.example.launcher/.MainActivity && sleep 2 
+
+~/Library/Android/sdk/platform-tools/adb logcat -d | grep "AppDrawer.*Found\|AppDrawer.*  -" | tail -15
+
+ 
 
 
 ### Database Operations

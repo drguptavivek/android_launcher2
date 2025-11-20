@@ -59,6 +59,16 @@ data class TelemetryResponse(
     val error: String?
 )
 
+data class PolicyConfig(
+    val allowedApps: List<String>,
+    val systemToggles: Map<String, Boolean>
+)
+
+data class PolicyResponse(
+    val config: String,
+    val updatedAt: String
+)
+
 interface ApiService {
     @POST("/api/devices/register")
     suspend fun registerDevice(@Body request: RegistrationRequest): RegistrationResponse
@@ -71,4 +81,7 @@ interface ApiService {
 
     @POST("/api/telemetry")
     suspend fun sendTelemetry(@Body request: TelemetryRequest): TelemetryResponse
+
+    @retrofit2.http.GET("/api/sync/{deviceId}")
+    suspend fun syncPolicy(@retrofit2.http.Path("deviceId") deviceId: String): PolicyResponse
 }

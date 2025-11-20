@@ -23,6 +23,11 @@ import com.example.launcher.data.network.UserData
 import com.example.launcher.ui.registration.RegistrationScreen
 import com.example.launcher.ui.login.LoginScreen
 import com.example.launcher.ui.settings.SettingsScreen
+import com.example.launcher.ui.pin.PinSetupScreen
+import com.example.launcher.ui.pin.PinLockScreen
+import com.example.launcher.ui.home.AppDrawer
+import com.example.launcher.util.KioskManager
+import com.example.launcher.util.PinManager
 import com.example.launcher.worker.TelemetryWorker
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -38,6 +43,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val sessionManager = SessionManager(this)
+        val kioskManager = KioskManager(this)
+        val pinManager = PinManager(this)
         
         // Request permissions
         val permissions = arrayOf(
@@ -55,6 +62,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     // Load initial state from session
                     var isDeviceRegistered by remember { mutableStateOf(sessionManager.isDeviceRegistered()) }
+                    var isPinSet by remember { mutableStateOf(pinManager.isPinSet()) }
                     var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
                     var isLoggedIn by remember { mutableStateOf(currentUser != null) }
                     var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS
@@ -80,6 +88,13 @@ class MainActivity : ComponentActivity() {
                         RegistrationScreen(
                             onRegistrationSuccess = {
                                 isDeviceRegistered = true
+                            }
+                        )
+                    } else if (!isPinSet && isLoggedIn) {
+                        // Show PIN setup after first login
+                        PinSetupScreen(
+                            onPinSet = {
+                                isPinSet = true
                             }
                         )
                     } else if (isLoggedIn && currentUser != null) {
@@ -148,10 +163,9 @@ class MainActivity : ComponentActivity() {
                                 Box(
                                     modifier = Modifier
                                         .padding(padding)
-                                        .fillMaxSize(),
-                                    contentAlignment = Alignment.Center
+                                        .fillMaxSize()
                                 ) {
-                                    Text("Welcome to Launcher Home!")
+                                    AppDrawer()
                                 }
                             }
                         }
@@ -166,6 +180,38 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        
+        // Set up lock task whitelist if device is Device Owner
+        val kioskManager = KioskManager(this)
+        if (kioskManager.isDeviceOwner()) {
+            // Load policy and set allowed apps
+            val sessionManager = SessionManager(this)
+            val policyJson = sessionManager.getPolicy()
+            var allowed = emptyList<String>()
+            
+            if (policyJson != null) {
+                try {
+                    val gson = com.google.gson.Gson()
+                    val policy = gson.fromJson(policyJson, com.example.launcher.data.network.PolicyConfig::class.java)
+                    allowed = policy.allowedApps
+                    android.util.Log.d("MainActivity", "Policy whitelist: $allowed")
+                } catch (e: Exception) {
+                    android.util.Log.e("MainActivity", "Error parsing policy", e)
+                }
+            }
+            
+            // Reset whitelist with the latest allowed apps
+            kioskManager.resetLockTaskPackages(allowed)
+            
+            // NOTE: Kiosk mode is NOT automatically enabled here
+            // User can enable it manually from Settings
+            // kioskManager.enableKioskMode(this)
+            kioskManager.setSystemRestrictions(true)
         }
     }
 }

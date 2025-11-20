@@ -158,6 +158,33 @@ class TelemetryWorker(
             }
         }
 
+        // 3. Sync Policy from server
+        try {
+            val retrofit = Retrofit.Builder()
+                .baseUrl("http://localhost:5173/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+            
+            val api = retrofit.create(ApiService::class.java)
+            val policyResponse = api.syncPolicy(deviceId)
+            
+            // Save policy to SessionManager
+            sessionManager.savePolicy(policyResponse.config)
+            
+            // Parse and apply policy
+            val gson = Gson()
+            val policyConfig = gson.fromJson(policyResponse.config, com.example.launcher.data.network.PolicyConfig::class.java)
+            
+            // Update KioskManager with allowed apps
+            val kioskManager = com.example.launcher.util.KioskManager(applicationContext)
+            kioskManager.setAllowedApps(policyConfig.allowedApps)
+            
+            Log.d("TelemetryWorker", "Policy synced: ${policyConfig.allowedApps.size} allowed apps")
+        } catch (e: Exception) {
+            Log.e("TelemetryWorker", "Error syncing policy", e)
+            // Don't fail the worker if policy sync fails
+        }
+
         return Result.success()
     }
 }

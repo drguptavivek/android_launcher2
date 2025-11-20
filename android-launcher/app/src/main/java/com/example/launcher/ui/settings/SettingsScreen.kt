@@ -6,13 +6,24 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.example.launcher.data.network.UserData
+import com.example.launcher.data.network.ApiService
+import com.example.launcher.data.network.PolicyConfig
 import com.example.launcher.worker.TelemetryWorker
+import com.example.launcher.util.KioskManager
+import com.google.gson.Gson
+import kotlinx.coroutines.launch
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +35,9 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+    var syncStatus by remember { mutableStateOf("") }
+    var isSyncing by remember { mutableStateOf(false) }
     
     Scaffold(
         topBar = {
@@ -108,6 +122,62 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Send Telemetry Now")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    isSyncing = true
+                    syncStatus = "Syncing..."
+                    coroutineScope.launch {
+                        try {
+                            val deviceId = sessionManager.getDeviceId() ?: "unknown"
+                            val retrofit = Retrofit.Builder()
+                                .baseUrl("http://localhost:5173/")
+                                .addConverterFactory(GsonConverterFactory.create())
+                                .build()
+                            
+                            val api = retrofit.create(ApiService::class.java)
+                            val policyResponse = api.syncPolicy(deviceId)
+                            
+                            // Save policy
+                            sessionManager.savePolicy(policyResponse.config)
+                            
+                            // Parse and apply
+                            val gson = Gson()
+                            val policy = gson.fromJson(policyResponse.config, PolicyConfig::class.java)
+                            
+                            // Update KioskManager - reset whitelist to apply changes immediately
+                            val kioskManager = KioskManager(context)
+                            if (kioskManager.isDeviceOwner()) {
+                                kioskManager.resetLockTaskPackages(policy.allowedApps)
+                            }
+                            
+                            syncStatus = "✅ Synced ${policy.allowedApps.size} apps"
+                            isSyncing = false
+                        } catch (e: Exception) {
+                            syncStatus = "❌ Error: ${e.message}"
+                            isSyncing = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !isSyncing
+            ) {
+                Text(if (isSyncing) "Syncing..." else "Sync Policy Now")
+            }
+
+            if (syncStatus.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = syncStatus,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (syncStatus.startsWith("✅")) 
+                        MaterialTheme.colorScheme.primary 
+                    else 
+                        MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.weight(1f))

@@ -34,3 +34,16 @@ export const telemetry = sqliteTable('telemetry', {
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
 });
 
+export const policies = sqliteTable('policies', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    config: text('config').notNull(), // JSON string: { allowedApps: [], systemToggles: {} }
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull()
+});
+
+export const devicePolicies = sqliteTable('device_policies', {
+    deviceId: integer('device_id').references(() => devices.id).notNull(),
+    policyId: text('policy_id').references(() => policies.id).notNull(),
+    assignedAt: integer('assigned_at', { mode: 'timestamp' }).notNull()
+});
+
