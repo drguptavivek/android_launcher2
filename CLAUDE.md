@@ -48,48 +48,73 @@ cd android-launcher
 ./gradlew :app:installDebug    # Install on connected device
 ./gradlew testDebugUnitTest    # Run unit tests
 ./gradlew connectedDebugAndroidTest # Instrumentation tests
-adb reverse tcp:5173 tcp:5173  # Reverse proxy for local API testing
+
 ```
 
-~/Library/Android/sdk/platform-tools/adb reverse tcp:5173 tcp:5173
-~/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-~/Library/Android/sdk/emulator/emulator -list-avds
-~/Library/Android/sdk/emulator/emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
+### Common Commands
+ - ~/Library/Android/sdk/platform-tools/adb
+ - emulator
 
-~/Library/Android/sdk/platform-tools/adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+```bash
 
-~/Library/Android/sdk/platform-tools/adb shell am force-stop com.example.launcher 
-~/Library/Android/sdk/platform-tools/adb shell am start -n com.example.launcher/.MainActivity 
+# Make sure no emulator is running
+emulator -list-avds
+# emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
+
+adb devices       # optional, just to see what’s up
+
+adb emu kill
+emulator -avd Medium_Phone_API_36.0 -wipe-data -no-snapshot-load  -no-snapshot-save -no-boot-anim & 
+
+adb wait-for-device
+adb shell 'while [[ "$(getprop sys.boot_completed)" != "1" ]]; do sleep 1; done; echo "booted"'
+
+
+adb install -r ODK-Collect-v2025.3.3.apk
+
+adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
+
+adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+
+# Reverse proxy for local API testing
+adb reverse tcp:5173 tcp:5173 
+
+
+
+
+adb shell am force-stop com.example.launcher 
+adb shell am start -n com.example.launcher/.MainActivity 
 
 
 # 1. Set Device Owner (factory reset device first!)
-~/Library/Android/sdk/platform-tools/adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+
 # 2. Install app
 cd android-launcher && ./gradlew assembleDebug
-~/Library/Android/sdk/platform-tools/adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/app-debug.apk
 # 3. Setup port forwarding
-~/Library/Android/sdk/platform-tools/adb reverse tcp:5173 tcp:5173
+adb reverse tcp:5173 tcp:5173
 
 # 3.b Installing ODK
-~/Library/Android/sdk/platform-tools/adb install -r ODK-Collect-v2025.3.3.apk
-~/Library/Android/sdk/platform-tools/adb shell dumpsys package org.odk.collect.android | grep -A 5 "android.intent.action.MAIN" | head -20
+adb install -r ODK-Collect-v2025.3.3.apk
+adb shell dumpsys package org.odk.collect.android | grep -A 5 "android.intent.action.MAIN" | head -20
 
-Run it in KIOSL Mode
-~/Library/Android/sdk/platform-tools/adb shell am start -n org.odk.collect.android/.mainmenu.MainMenuActivity
+# Run ODK in KIOSK Mode
+adb shell am start -n org.odk.collect.android/.mainmenu.MainMenuActivity
+```
 
 Starting: Intent { cmp=org.odk.collect.android/.mainmenu.MainMenuActivity } Error: Activity not started, unknown error code 101 
-
 Error code 101 - that's the lock task violation! ODK Collect is being blocked by kiosk mode. Let me add it to the policy first:
 
 # 4. Checking Logs, stopping etc
-~/Library/Android/sdk/platform-tools/adb logcat -d 
 
-~/Library/Android/sdk/platform-tools/adb shell am force-stop com.example.launcher && sleep 1 
-~/Library/Android/sdk/platform-tools/adb shell am start -n com.example.launcher/.MainActivity && sleep 2 
-
-~/Library/Android/sdk/platform-tools/adb logcat -d | grep "AppDrawer.*Found\|AppDrawer.*  -" | tail -15
-
+```bash
+adb logcat -d 
+adb shell am force-stop com.example.launcher && sleep 1 
+adb shell am start -n com.example.launcher/.MainActivity && sleep 2 
+adb logcat -d | grep "AppDrawer.*Found\|AppDrawer.*  -" | tail -15
+```
  
 
 

@@ -2,6 +2,7 @@
 package com.example.launcher
 
 import android.Manifest
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -204,13 +205,29 @@ class MainActivity : ComponentActivity() {
                     android.util.Log.e("MainActivity", "Error parsing policy", e)
                 }
             }
+
+            // Fallback to the fixed allow-list when no valid policy is present
+            if (allowed.isEmpty()) {
+                allowed = KioskManager.DEFAULT_ALLOWED_PACKAGES
+                android.util.Log.d("MainActivity", "Using fixed allow-list: $allowed")
+            }
+
+            // Always refresh the allow-list even if already pinned.
+            kioskManager.applyLockTaskAllowList(allowed)
+
+            // Enable kiosk mode and restrictions.
+            // Important: setLockTaskPackages must include all whitelisted apps BEFORE startLockTask().
+            try {
+                val activityManager = getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                val lockTaskModeState = activityManager.lockTaskModeState
+                
+                if (lockTaskModeState == android.app.ActivityManager.LOCK_TASK_MODE_NONE) {
+                    kioskManager.enableKioskMode(this, allowed)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to enable kiosk mode", e)
+            }
             
-            // Reset whitelist with the latest allowed apps
-            kioskManager.resetLockTaskPackages(allowed)
-            
-            // NOTE: Kiosk mode is NOT automatically enabled here
-            // User can enable it manually from Settings
-            // kioskManager.enableKioskMode(this)
             kioskManager.setSystemRestrictions(true)
         }
     }
