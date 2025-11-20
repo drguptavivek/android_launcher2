@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -13,7 +14,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toBitmap
 import com.example.launcher.data.SessionManager
 import com.example.launcher.data.network.PolicyConfig
 import com.example.launcher.util.KioskManager
@@ -106,6 +109,8 @@ fun AppDrawer() {
 
 @Composable
 fun AppIcon(app: AppInfo, context: Context) {
+    val bitmap = remember(app.packageName) { app.icon?.toBitmap() }
+
     Column(
         modifier = Modifier
             .clickable {
@@ -114,18 +119,25 @@ fun AppIcon(app: AppInfo, context: Context) {
             .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App icon would go here (requires AndroidView for Drawable)
-        Surface(
-            modifier = Modifier.size(48.dp),
-            shape = MaterialTheme.shapes.medium,
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = app.label.take(1).uppercase(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
+        if (bitmap != null) {
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = app.label,
+                modifier = Modifier.size(48.dp)
+            )
+        } else {
+            Surface(
+                modifier = Modifier.size(48.dp),
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = app.label.take(1).uppercase(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
             }
         }
         
