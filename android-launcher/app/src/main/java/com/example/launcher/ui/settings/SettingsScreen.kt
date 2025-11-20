@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -31,13 +32,15 @@ fun SettingsScreen(
     currentUser: UserData?,
     onBack: () -> Unit,
     onLogout: () -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    onChangePin: () -> Unit
 ) {
     val context = LocalContext.current
     val sessionManager = remember { com.example.launcher.data.SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     var syncStatus by remember { mutableStateOf("") }
     var isSyncing by remember { mutableStateOf(false) }
+    var policyName by remember { mutableStateOf(extractPolicyName(sessionManager.getPolicy())) }
     
     Scaffold(
         topBar = {
@@ -69,6 +72,7 @@ fun SettingsScreen(
                     Text("Device ID: ${sessionManager.getDeviceId() ?: "Not Registered"}")
                     Text("Server: http://localhost:5173/")
                     Text("User: ${currentUser?.username ?: "Not Logged In"}")
+                    Text("Policy: ${policyName ?: "Default (local)"}")
                 }
             }
 
@@ -110,6 +114,17 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // PIN Section
+            Text("PIN", style = MaterialTheme.typography.titleSmall)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onChangePin,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Change PIN")
+            }
+            Spacer(modifier = Modifier.height(24.dp))
+
             // Actions Section
             Text("Actions", style = MaterialTheme.typography.titleSmall)
             Spacer(modifier = Modifier.height(8.dp))
@@ -147,11 +162,13 @@ fun SettingsScreen(
                             // Parse and apply
                             val gson = Gson()
                             val policy = gson.fromJson(policyResponse.config, PolicyConfig::class.java)
+                            policyName = policy.name ?: policyResponse.name
                             
-                            // Update KioskManager - reset whitelist to apply changes immediately
+                            // Update KioskManager - merge defaults + policy + aiims packages, then apply
                             val kioskManager = KioskManager(context)
                             if (kioskManager.isDeviceOwner()) {
-                                kioskManager.resetLockTaskPackages(policy.allowedApps)
+                                val merged = (KioskManager.DEFAULT_ALLOWED_PACKAGES + policy.allowedApps + getAiimsPackages(context)).distinct()
+                                kioskManager.applyLockTaskAllowList(merged)
                             }
                             
                             syncStatus = "✅ Synced ${policy.allowedApps.size} apps"
@@ -200,5 +217,27 @@ fun SettingsScreen(
                 Text("Reset Registration (Debug)")
             }
         }
+    }
+}
+
+private fun extractPolicyName(policyJson: String?): String? {
+    if (policyJson.isNullOrBlank()) return null
+    return try {
+        val gson = Gson()
+        val policy = gson.fromJson(policyJson, PolicyConfig::class.java)
+        policy.name
+    } catch (_: Exception) {
+        null
+    }
+}
+
+private fun getAiimsPackages(context: android.content.Context): List<String> {
+    return try {
+        context.packageManager.getInstalledPackages(0)
+            .map { it.packageName }
+            .filter { it.startsWith("edu.aiims.") }
+    } catch (e: Exception) {
+        android.util.Log.e("SettingsScreen", "Error collecting edu.aiims.* packages", e)
+        emptyList()
     }
 }

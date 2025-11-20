@@ -26,6 +26,7 @@ import com.example.launcher.ui.login.LoginScreen
 import com.example.launcher.ui.settings.SettingsScreen
 import com.example.launcher.ui.pin.PinSetupScreen
 import com.example.launcher.ui.pin.PinLockScreen
+import com.example.launcher.ui.pin.PinChangeScreen
 import com.example.launcher.ui.home.AppDrawer
 import com.example.launcher.util.KioskManager
 import com.example.launcher.util.PinManager
@@ -66,7 +67,7 @@ class MainActivity : ComponentActivity() {
                     var isPinSet by remember { mutableStateOf(pinManager.isPinSet()) }
                     var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
                     var isLoggedIn by remember { mutableStateOf(currentUser != null) }
-                    var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS
+                    var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS, PIN_CHANGE
 
                     // Effect to schedule worker when logged in
                     LaunchedEffect(isLoggedIn) {
@@ -133,7 +134,15 @@ class MainActivity : ComponentActivity() {
                                     currentUser = null
                                     isDeviceRegistered = false
                                     currentScreen = "HOME"
+                                },
+                                onChangePin = {
+                                    currentScreen = "PIN_CHANGE"
                                 }
+                            )
+                        } else if (currentScreen == "PIN_CHANGE") {
+                            PinChangeScreen(
+                                onComplete = { currentScreen = "SETTINGS" },
+                                onCancel = { currentScreen = "SETTINGS" }
                             )
                         } else {
                             // HOME SCREEN

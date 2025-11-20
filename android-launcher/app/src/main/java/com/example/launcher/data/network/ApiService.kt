@@ -61,12 +61,14 @@ data class TelemetryResponse(
 
 data class PolicyConfig(
     val allowedApps: List<String>,
-    val systemToggles: Map<String, Boolean>
+    val systemToggles: Map<String, Boolean>,
+    val name: String? = null
 )
 
 data class PolicyResponse(
     val config: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val name: String? = null
 )
 
 interface ApiService {
