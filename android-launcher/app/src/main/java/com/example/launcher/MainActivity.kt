@@ -97,9 +97,9 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .align(Alignment.Center)
                             .fillMaxSize(0.7f)
-                            .graphicsLayer { alpha = 0.12f },
+                            .graphicsLayer { alpha = 0.16f },
                         contentScale = ContentScale.Fit,
-                        colorFilter = ColorFilter.tint(Color.White.copy(alpha = 0.2f))
+                        colorFilter = ColorFilter.tint(Color(0xFF7FC8FF).copy(alpha = 0.22f))
                     )
 
                     Surface(
