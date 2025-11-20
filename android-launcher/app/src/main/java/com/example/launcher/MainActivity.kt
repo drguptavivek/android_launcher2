@@ -182,6 +182,11 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onChangePin = {
                                     currentScreen = "PIN_CHANGE"
+                                },
+                                currentTheme = colorTheme,
+                                onThemeChange = { theme ->
+                                    colorTheme = theme
+                                    sessionManager.saveTheme(theme)
                                 }
                             )
                         } else if (currentScreen == "PIN_CHANGE") {
