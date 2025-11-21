@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
 import android.os.UserManager
 import edu.aiims.surveylauncher.MainActivity
 import edu.aiims.surveylauncher.admin.LauncherAdminReceiver
@@ -117,6 +118,9 @@ class KioskManager(private val context: Context) {
                     )
                     android.util.Log.d("KioskManager", "Set as default home app")
                 }
+
+                // Hide/disable other launchers so ours remains the only HOME target
+                enforceLauncherExclusivity()
             } else {
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_SAFE_BOOT)
                 dpm.clearUserRestriction(adminComponent, UserManager.DISALLOW_FACTORY_RESET)
@@ -134,9 +138,44 @@ class KioskManager(private val context: Context) {
         val intent = Intent(Intent.ACTION_MAIN).apply {
             addCategory(Intent.CATEGORY_HOME)
         }
-        val resolveInfo = context.packageManager.resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY)
+        val resolveInfo = context.packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)
         val currentHome = resolveInfo?.activityInfo?.packageName
         android.util.Log.d("KioskManager", "Current home app: $currentHome, My package: ${context.packageName}")
         return currentHome == context.packageName
+    }
+
+    /**
+     * Hide or disable any other launcher apps so only this app can handle HOME.
+     * This should only be called when we are device owner.
+     */
+    private fun enforceLauncherExclusivity() {
+        val pm = context.packageManager
+        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+            addCategory(Intent.CATEGORY_HOME)
+            addCategory(Intent.CATEGORY_DEFAULT)
+        }
+
+        val homeActivities = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        homeActivities.forEach { resolveInfo ->
+            val pkg = resolveInfo.activityInfo?.packageName ?: return@forEach
+            if (pkg == context.packageName) return@forEach
+
+            try {
+                val hidden = dpm.setApplicationHidden(adminComponent, pkg, true)
+                android.util.Log.d("KioskManager", "Hiding launcher $pkg result=$hidden")
+                if (!hidden) {
+                    pm.setApplicationEnabledSetting(
+                        pkg,
+                        PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,
+                        PackageManager.DONT_KILL_APP
+                    )
+                    android.util.Log.d("KioskManager", "Disabled launcher $pkg via PackageManager")
+                }
+            } catch (se: SecurityException) {
+                android.util.Log.e("KioskManager", "Failed to hide launcher $pkg", se)
+            } catch (iae: IllegalArgumentException) {
+                android.util.Log.e("KioskManager", "Package not found when hiding launcher $pkg", iae)
+            }
+        }
     }
 }
