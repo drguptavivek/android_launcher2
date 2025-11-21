@@ -83,6 +83,17 @@ class KioskManager(private val context: Context) {
         }
     }
 
+    fun lockDeviceNow() {
+        if (isDeviceOwner()) {
+            try {
+                dpm.lockNow()
+                android.util.Log.d("KioskManager", "Device locked via DPM")
+            } catch (e: Exception) {
+                android.util.Log.e("KioskManager", "Failed to lock device", e)
+            }
+        }
+    }
+
     fun setSystemRestrictions(enable: Boolean) {
         if (isDeviceOwner()) {
             if (enable) {

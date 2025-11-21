@@ -3,6 +3,8 @@ package edu.aiims.surveylauncher
 
 import android.Manifest
 import android.content.Context
+import android.app.KeyguardManager
+import android.app.admin.DevicePolicyManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,6 +12,11 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
@@ -23,8 +30,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -36,7 +41,6 @@ import edu.aiims.surveylauncher.ui.registration.RegistrationScreen
 import edu.aiims.surveylauncher.ui.login.LoginScreen
 import edu.aiims.surveylauncher.ui.settings.SettingsScreen
 import edu.aiims.surveylauncher.ui.pin.PinSetupScreen
-import edu.aiims.surveylauncher.ui.pin.PinLockScreen
 import edu.aiims.surveylauncher.ui.pin.PinChangeScreen
 import edu.aiims.surveylauncher.ui.home.AppDrawer
 import edu.aiims.surveylauncher.util.KioskManager
@@ -56,11 +60,15 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
+    private val isDeviceSecureState = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val sessionManager = SessionManager(this)
         val kioskManager = KioskManager(this)
+        val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+        isDeviceSecureState.value = keyguardManager.isDeviceSecure
         val pinManager = PinManager(this)
         
         // Request permissions
@@ -76,6 +84,36 @@ class MainActivity : ComponentActivity() {
                 // Theme selection (persisted)
                 var colorTheme by remember { mutableStateOf(sessionManager.getTheme() ?: "deepBlue") }
                 val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+                var lastInteraction by remember { mutableStateOf(System.currentTimeMillis()) }
+                var isDeviceRegistered by remember { mutableStateOf(sessionManager.isDeviceRegistered()) }
+                var isPinSet by remember { mutableStateOf(pinManager.isPinSet()) }
+                var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
+                var isLoggedIn by remember { mutableStateOf(currentUser != null) }
+                var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS, PIN_CHANGE
+                var isDeviceSecure by isDeviceSecureState
+
+                LaunchedEffect(lastInteraction, isLoggedIn, isPinSet) {
+                    if (!isLoggedIn || !isPinSet) {
+                        return@LaunchedEffect
+                    }
+                    val captured = lastInteraction
+                    val timeoutMs = 5 * 60 * 1000L // 5 minutes
+                    kotlinx.coroutines.delay(timeoutMs)
+                    if (isLoggedIn && isPinSet && captured == lastInteraction) {
+                        kioskManager.lockDeviceNow()
+                        lastInteraction = System.currentTimeMillis()
+                    }
+                }
+
+                LaunchedEffect(isDeviceSecure, isDeviceRegistered, isLoggedIn) {
+                    if (!isDeviceSecure && isDeviceRegistered && isLoggedIn) {
+                        try {
+                            startActivity(android.content.Intent(DevicePolicyManager.ACTION_SET_NEW_PASSWORD))
+                        } catch (e: Exception) {
+                            android.util.Log.e("MainActivity", "Failed to launch lock setup", e)
+                        }
+                    }
+                }
 
                 Box(
                     modifier = Modifier
@@ -89,6 +127,12 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         )
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                lastInteraction = System.currentTimeMillis()
+                            }
+                        }
                 ) {
                     val painter = rememberAsyncImagePainter(
                         ImageRequest.Builder(LocalContext.current)
@@ -131,25 +175,18 @@ class MainActivity : ComponentActivity() {
                         shape = MaterialTheme.shapes.large,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                     ) {
-                    // Load initial state from session
-                    var isDeviceRegistered by remember { mutableStateOf(sessionManager.isDeviceRegistered()) }
-                    var isPinSet by remember { mutableStateOf(pinManager.isPinSet()) }
-                    var currentUser by remember { mutableStateOf(sessionManager.getUser()) }
-                    var isLoggedIn by remember { mutableStateOf(currentUser != null) }
-                    var currentScreen by remember { mutableStateOf("HOME") } // HOME, SETTINGS, PIN_CHANGE
-
                     // Effect to schedule worker when logged in
                     LaunchedEffect(isLoggedIn) {
                         if (isLoggedIn) {
-                            val workRequest = PeriodicWorkRequestBuilder<TelemetryWorker>(
-                                15, TimeUnit.MINUTES
-                            ).build()
-                            
-                            WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
-                                "telemetry_work",
-                                ExistingPeriodicWorkPolicy.UPDATE,
-                                workRequest
-                            )
+                    val workRequest = PeriodicWorkRequestBuilder<TelemetryWorker>(
+                        15, TimeUnit.MINUTES
+                    ).build()
+                    
+                    WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+                        "telemetry_work",
+                        ExistingPeriodicWorkPolicy.UPDATE,
+                        workRequest
+                    )
                         } else {
                             WorkManager.getInstance(applicationContext).cancelUniqueWork("telemetry_work")
                         }
@@ -159,6 +196,7 @@ class MainActivity : ComponentActivity() {
                         RegistrationScreen(
                             onRegistrationSuccess = {
                                 isDeviceRegistered = true
+                                lastInteraction = System.currentTimeMillis()
                             }
                         )
                     } else if (!isPinSet && isLoggedIn) {
@@ -166,6 +204,7 @@ class MainActivity : ComponentActivity() {
                         PinSetupScreen(
                             onPinSet = {
                                 isPinSet = true
+                                lastInteraction = System.currentTimeMillis()
                             }
                         )
                     } else if (isLoggedIn && currentUser != null) {
@@ -195,6 +234,7 @@ class MainActivity : ComponentActivity() {
                                     isLoggedIn = false 
                                     currentUser = null
                                     currentScreen = "HOME"
+                                    lastInteraction = System.currentTimeMillis()
                                 },
                                 onReset = {
                                     sessionManager.clearUser()
@@ -203,9 +243,15 @@ class MainActivity : ComponentActivity() {
                                     currentUser = null
                                     isDeviceRegistered = false
                                     currentScreen = "HOME"
+                                    lastInteraction = System.currentTimeMillis()
                                 },
                                 onChangePin = {
-                                    currentScreen = "PIN_CHANGE"
+                                    try {
+                                        startActivity(android.content.Intent(android.app.admin.DevicePolicyManager.ACTION_SET_NEW_PASSWORD))
+                                        lastInteraction = System.currentTimeMillis()
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("MainActivity", "Failed to open system lock setup", e)
+                                    }
                                 },
                                 currentTheme = colorTheme,
                                 onThemeChange = { theme ->
@@ -215,6 +261,7 @@ class MainActivity : ComponentActivity() {
                                 onBackToHome = {
                                     kioskManager.stopKioskMode(this@MainActivity)
                                     currentScreen = "HOME"
+                                    lastInteraction = System.currentTimeMillis()
                                 }
                             )
                         } else if (currentScreen == "PIN_CHANGE") {
@@ -256,13 +303,14 @@ class MainActivity : ComponentActivity() {
                                     AppDrawer()
                                 }
                             }
-                        }
+                    }
                     } else {
                         LoginScreen(
                             onLoginSuccess = { user ->
                                 sessionManager.saveUser(user)
                                 currentUser = user
                                 isLoggedIn = true
+                                lastInteraction = System.currentTimeMillis()
                             }
                         )
                     }
@@ -277,6 +325,8 @@ class MainActivity : ComponentActivity() {
         
         // Set up lock task whitelist if device is Device Owner
         val kioskManager = KioskManager(this)
+        val keyguardManager = getSystemService(KEYGUARD_SERVICE) as KeyguardManager
+        isDeviceSecureState.value = keyguardManager.isDeviceSecure
         if (kioskManager.isDeviceOwner()) {
             // Load policy and set allowed apps
             val sessionManager = SessionManager(this)
