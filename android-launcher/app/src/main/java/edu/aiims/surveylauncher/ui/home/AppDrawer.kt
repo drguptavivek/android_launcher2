@@ -183,6 +183,8 @@ fun getInstalledApps(context: Context): List<AppInfo> {
                 icon = resolveInfo.loadIcon(packageManager)
             )
         }
+        // Deduplicate by package so apps with multiple launcher activities (e.g., Gmail) show once
+        .distinctBy { it.packageName }
         .toMutableList()
     
     // Manually add apps that might not appear in queryIntentActivities
