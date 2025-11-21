@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.work.OneTimeWorkRequestBuilder
@@ -42,6 +43,7 @@ fun SettingsScreen(
     onBackToHome: () -> Unit
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val sessionManager = remember { edu.aiims.surveylauncher.data.SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     var syncStatus by remember { mutableStateOf("") }
@@ -183,6 +185,23 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Back to Home")
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    try {
+                        // Launch system UI to pick home; if not supported, fallback to intent chooser
+                        context.startActivity(android.content.Intent(android.provider.Settings.ACTION_HOME_SETTINGS))
+                    } catch (e: Exception) {
+                        val intent = android.content.Intent(android.content.Intent.ACTION_MAIN).apply {
+                            addCategory(android.content.Intent.CATEGORY_HOME)
+                        }
+                        context.startActivity(android.content.Intent.createChooser(intent, "Select Home app"))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Set as Home app")
             }
             Spacer(modifier = Modifier.height(24.dp))
 
