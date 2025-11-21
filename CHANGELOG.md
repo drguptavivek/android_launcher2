@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - **Android Launcher**:
     - Debug-only registration bypass: entering code `1234` in debug builds skips the server call and stores a local debug device registration for faster testing.
+    - Glassy dark theme applied across launcher surfaces and cards for readability on gradients; settings regrouped into clear sections (Information, PIN/Theme/Permissions, Policy/Telemetry, Account/Device).
 
 ## [0.7.0] - 2025-11-20
 
