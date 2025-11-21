@@ -23,6 +23,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
             SurveyLauncherTheme {
                 // Theme selection (persisted)
                 var colorTheme by remember { mutableStateOf(sessionManager.getTheme() ?: "deepBlue") }
+                val statusBarTop = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
                 Box(
                     modifier = Modifier
@@ -107,8 +110,22 @@ class MainActivity : ComponentActivity() {
                     Surface(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(12.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                            .padding(
+                                top = statusBarTop + 12.dp,
+                                start = 12.dp,
+                                end = 12.dp,
+                                bottom = 12.dp
+                            )
+                            .background(
+                                brush = Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.12f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.05f)
+                                    )
+                                ),
+                                shape = MaterialTheme.shapes.large
+                            ),
+                        color = Color.Transparent,
                         tonalElevation = 0.dp,
                         shadowElevation = 0.dp,
                         shape = MaterialTheme.shapes.large,
