@@ -8,8 +8,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import edu.aiims.surveylauncher.util.PinManager
 
@@ -52,16 +55,21 @@ fun PinSetupScreen(onPinSet: () -> Unit) {
                 OutlinedTextField(
                     value = if (step == 1) pin else confirmPin,
                     onValueChange = { 
-                        if (it.length <= 6) {
+                        if (it.length <= 4 && it.all(Char::isDigit)) {
                             if (step == 1) pin = it else confirmPin = it
                             errorMessage = ""
                         }
                     },
-                    label = { Text("Enter PIN (4-6 digits)") },
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                    label = { Text("Enter 4-digit PIN") },
+                    textStyle = MaterialTheme.typography.headlineLarge.copy(
+                        letterSpacing = 8.sp,
+                        textAlign = TextAlign.Center
+                    ),
+                    visualTransformation = VisualTransformation.None,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Use digits only", style = MaterialTheme.typography.bodySmall) }
                 )
 
                 if (errorMessage.isNotEmpty()) {
@@ -79,14 +87,16 @@ fun PinSetupScreen(onPinSet: () -> Unit) {
                     onClick = {
                         when (step) {
                             1 -> {
-                                if (pin.length < 4) {
-                                    errorMessage = "PIN must be at least 4 digits"
+                                if (pin.length != 4) {
+                                    errorMessage = "PIN must be exactly 4 digits"
                                 } else {
                                     step = 2
                                 }
                             }
                             2 -> {
-                                if (pin == confirmPin) {
+                                if (pin.length != 4 || confirmPin.length != 4) {
+                                    errorMessage = "PIN must be exactly 4 digits"
+                                } else if (pin == confirmPin) {
                                     pinManager.setPin(pin)
                                     onPinSet()
                                 } else {
