@@ -2,16 +2,16 @@
 
 ### Package IDs and Components
 - `applicationId`: `edu.aiims.surveylauncher`
-- Main activity: `com.example.launcher.MainActivity`
-- Device admin receiver (DO): `com.example.launcher.admin.LauncherAdminReceiver`
+- Main activity: `edu.aiims.surveylauncher.MainActivity`
+- Device admin receiver (DO): `edu.aiims.surveylauncher.admin.LauncherAdminReceiver`
 - Home intent filter on `MainActivity`; Device Owner required for kiosk.
 
 ### Device Owner / Kiosk Flow
 1) Provision DO on a wiped device/emulator:
    ```
    adb install -r app/build/outputs/apk/debug/app-debug.apk
-   adb shell dpm set-device-owner edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver
-   adb shell cmd package set-home-activity edu.aiims.surveylauncher/com.example.launcher.MainActivity
+   adb shell dpm set-device-owner edu.aiims.surveylauncher/edu.aiims.surveylauncher.admin.LauncherAdminReceiver
+   adb shell cmd package set-home-activity edu.aiims.surveylauncher/edu.aiims.surveylauncher.MainActivity
    ```
 2) On resume (MainActivity), for DO devices:
    - Load policy JSON (if present), else defaults.
@@ -57,5 +57,5 @@
 ### Home Activity Setting
 - After DO provisioning, ensure HOME points to the launcher:
   ```
-  adb shell cmd package set-home-activity edu.aiims.surveylauncher/com.example.launcher.MainActivity
+  adb shell cmd package set-home-activity edu.aiims.surveylauncher/edu.aiims.surveylauncher.MainActivity
   ```

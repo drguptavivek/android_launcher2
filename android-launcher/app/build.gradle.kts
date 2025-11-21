@@ -8,7 +8,7 @@ plugins {
 
 
 android {
-    namespace = "com.example.launcher"
+    namespace = "edu.aiims.surveylauncher"
     compileSdk = 36
     buildToolsVersion = "35.0.1"
 
@@ -40,6 +40,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {

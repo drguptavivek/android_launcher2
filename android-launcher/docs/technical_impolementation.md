@@ -2,8 +2,8 @@
 
 ### Core Identifiers
 - `applicationId`: `edu.aiims.surveylauncher`
-- Main activity: `com.example.launcher.MainActivity`
-- Device owner admin: `com.example.launcher.admin.LauncherAdminReceiver`
+- Main activity: `edu.aiims.surveylauncher.MainActivity`
+- Device owner admin: `edu.aiims.surveylauncher.admin.LauncherAdminReceiver`
 
 ### Kiosk / Lock Task
 - On `onResume`, if Device Owner:

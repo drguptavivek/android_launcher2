@@ -13,11 +13,11 @@ Kotlin/Compose launcher app (`applicationId`: `edu.aiims.surveylauncher`) with m
 2) Install the launcher APK.
 3) Set Device Owner:
    ```
-   adb shell dpm set-device-owner edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver
+   adb shell dpm set-device-owner edu.aiims.surveylauncher/edu.aiims.surveylauncher.admin.LauncherAdminReceiver
    ```
 4) Set as HOME (if needed):
    ```
-   adb shell cmd package set-home-activity edu.aiims.surveylauncher/com.example.launcher.MainActivity
+   adb shell cmd package set-home-activity edu.aiims.surveylauncher/edu.aiims.surveylauncher.MainActivity
    ```
 
 ### Kiosk & Allow-List

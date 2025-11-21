@@ -42,6 +42,10 @@ npm run test                   # Vitest unit tests
 ### Android Launcher
 ```bash
 cd android-launcher
+cd android-launcher
+# Prefer a local Gradle cache to avoid permission/network issues: 
+GRADLE_USER_HOME=$PWD/.gradle ./gradlew :app:assembleDebug.
+
 ./gradlew tasks                # List available tasks
 ./gradlew assembleDebug
 ./gradlew :app:assembleDebug   # Build debug APK
@@ -58,72 +62,65 @@ cd android-launcher
 
 ```bash
 
+cd android-launcher
+./gradlew tasks                # List available tasks
+./gradlew :app:assembleDebug 
+
 # Make sure no emulator is running
 emulator -list-avds
 # emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
-
 adb devices       # optional, just to see what’s up
-
 adb emu kill
 emulator -avd Medium_Phone_API_36.0 -wipe-data -no-snapshot-load  -no-snapshot-save -no-boot-anim & 
-
 adb wait-for-device
 adb shell 'while [[ "$(getprop sys.boot_completed)" != "1" ]]; do sleep 1; done; echo "booted"'
-
-
-
-adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
-
-adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
-adb shell dpm set-device-owner   edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver.
-
-
-adb install -r ODK-Collect-v2025.3.3.apk
-
-adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
-
-adb shell dpm set-device-owner edu.aiims.surveylauncher/com.example.launcher.admin.LauncherAdminReceiver
-
-adb shell cmd package set-home-activity edu.aiims.surveylauncher/com.example.launcher.MainActivity
-
-
-
 # Reverse proxy for local API testing
 adb reverse tcp:5173 tcp:5173 
 
+cd android-launcher
 
-
-
-adb shell am force-stop com.example.launcher 
-adb shell am start -n com.example.launcher/.MainActivity 
-
-
-# 1. Set Device Owner (factory reset device first!)
-adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
-
-# 2. Install app
-cd android-launcher && ./gradlew assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-# 3. Setup port forwarding
-adb reverse tcp:5173 tcp:5173
-
-# 3.b Installing ODK
+# Installing ODK
 adb install -r ODK-Collect-v2025.3.3.apk
 adb shell dumpsys package org.odk.collect.android | grep -A 5 "android.intent.action.MAIN" | head -20
+# Run ODK in KIOSK Mode adb shell am start -n org.odk.collect.android/.mainmenu.MainMenuActivity
 
-# Run ODK in KIOSK Mode
-adb shell am start -n org.odk.collect.android/.mainmenu.MainMenuActivity
+#  - From repo root: 
+cd android-launcher
+# Prefer a local Gradle cache to avoid permission/network issues: 
+GRADLE_USER_HOME=$PWD/.gradle ./gradlew :app:assembleDebug.
+
+# If you need to force a clean rebuild: 
+GRADLE_USER_HOME=$PWD/.gradle ./gradlew clean :app:assembleDebug.
+# With the wrapper cached, subsequent runs are just 
+./gradlew :app:assembleDebug 
+# (or assembleRelease for a release build).
+# ./gradlew :app:assembleRelease 
+
+./gradlew tasks                # List available tasks
+./gradlew :app:assembleDebug 
+# Install Launcher
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+ # Set Device Owner (factory reset device first!)
+adb shell dpm set-device-owner edu.aiims.surveylauncher/.admin.LauncherAdminReceiver
+adb shell cmd package set-home-activity edu.aiims.surveylauncher/.MainActivity  # set/reset HOME
+
+# FORCE STOP
+adb shell am force-stop edu.aiims.surveylauncher 
+adb shell am start -n edu.aiims.surveylauncher/.MainActivity 
+
+
 ```
 
-Starting: Intent { cmp=org.odk.collect.android/.mainmenu.MainMenuActivity } Error: Activity not started, unknown error code 101 
-Error code 101 - that's the lock task violation! ODK Collect is being blocked by kiosk mode. Let me add it to the policy first:
 
 # 4. Checking Logs, stopping etc
 
 ```bash
-adb logcat -d 
-adb shell am force-stop com.example.launcher && sleep 1 
-adb shell am start -n com.example.launcher/.MainActivity && sleep 2 
+adb logcat -t 100
+adb shell am force-stop edu.aiims.surveylauncher && sleep 1 
+adb shell am start -n edu.aiims.surveylauncher/.MainActivity && sleep 2 
+
+#  AppDrawer’s discovery logs, showing the last ~15 lines where the drawer lists found launcher apps or allowed apps. 
+# Handy for verifying the allow-list filtering after policy sync or debugging why an app isn’t appearing in the drawer without wading through full logs.
 adb logcat -d | grep "AppDrawer.*Found\|AppDrawer.*  -" | tail -15
 ```
  

@@ -17,6 +17,7 @@
 ## Testing Guidelines
 - Web: `npm run test` (Vitest) for unit tests; add files under `src/lib/**/__tests__` or `*.test.ts`. Use `npm run check` to catch type + Svelte issues before PRs.
 - Android: place JVM tests in `app/src/test`, instrumentation in `app/src/androidTest`. Run `./gradlew testDebugUnitTest` for logic and `./gradlew connectedDebugAndroidTest` when emulator/device is available. Provide telemetry replay scripts if a new sensor path is added.
+- Debug tip: on-device registration screen accepts code `1234` in debug builds to bypass server registration for testing.
 
 ## Commit & Pull Request Guidelines
 - Write imperative, component-scoped commits (e.g., `android: fix telemetry JSON parsing`). Reference issue IDs or PLAN tasks when relevant.
@@ -70,6 +71,9 @@ npm run test                   # Vitest unit tests
 ### Android Launcher
 ```bash
 cd android-launcher
+# Prefer a local Gradle cache to avoid permission/network issues: 
+GRADLE_USER_HOME=$PWD/.gradle ./gradlew :app:assembleDebug.
+
 ./gradlew tasks                # List available tasks
 ./gradlew assembleDebug
 ./gradlew :app:assembleDebug   # Build debug APK
@@ -79,13 +83,7 @@ cd android-launcher
 
 ```
 
-
-### Common Commands
- - ~/Library/Android/sdk/platform-tools/adb
- - emulator
-
 ```bash
-
 # Make sure no emulator is running
 emulator -list-avds
 # emulator -avd Medium_Phone_API_36.0 -netdelay none -netspeed full
@@ -105,23 +103,8 @@ cd android-launcher
 adb install -r ../ODK-Collect-v2025.3.3.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 
-adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+adb shell dpm set-device-owner edu.aiims.surveylauncher/.admin.LauncherAdminReceiver
 
-
-# 5. Install launcher APK and set DO again:
-adb install -r android-launcher/app/build/outputs/apk/debug/app-debug.apk
-
-adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
-
-adb shell cmd package set-home-activity com.example.launcher/.MainActivity
-    
-   #   - Optional: 
-adb shell dumpsys device_policy | grep -A5 'Lock task' 
-adb shell dumpsys device_policy | sed -n '/LockTaskPolicy/,+8p'
-adb shell dumpsys device_policy | grep -A8 -i locktask
-
-adb shell dumpsys activity  activities | grep mLockTaskModeState 
-   # to verify whitelisted packages and locked state.
 
 
 # Reverse proxy for local API testing
@@ -129,12 +112,12 @@ adb reverse tcp:5173 tcp:5173
 
 
 
-adb shell am force-stop com.example.launcher 
-adb shell am start -n com.example.launcher/.MainActivity 
+adb shell am force-stop edu.aiims.surveylauncher 
+adb shell am start -n edu.aiims.surveylauncher/.MainActivity 
 
 
 # 1. Set Device Owner (factory reset device first!)
-adb shell dpm set-device-owner com.example.launcher/.admin.LauncherAdminReceiver
+adb shell dpm set-device-owner edu.aiims.surveylauncher/.admin.LauncherAdminReceiver
 
 # 2. Install app
 cd android-launcher && ./gradlew assembleDebug
@@ -144,6 +127,7 @@ adb reverse tcp:5173 tcp:5173
 
 # 3.b Installing ODK
 adb install -r ODK-Collect-v2025.3.3.apk
+## Check ODk activities / intent
 adb shell dumpsys package org.odk.collect.android | grep -A 5 "android.intent.action.MAIN" | head -20
 
 # Run ODK in KIOSK Mode
@@ -157,8 +141,8 @@ Error code 101 - that's the lock task violation! ODK Collect is being blocked by
 
 ```bash
 adb logcat -d 
-adb shell am force-stop com.example.launcher && sleep 1 
-adb shell am start -n com.example.launcher/.MainActivity && sleep 2 
+adb shell am force-stop edu.aiims.surveylauncher && sleep 1 
+adb shell am start -n edu.aiims.surveylauncher/.MainActivity && sleep 2 
 adb logcat -d | grep "AppDrawer.*Found\|AppDrawer.*  -" | tail -15
 ```
  

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2025-11-20
+
+### Changed
+- **Android Launcher**:
+    - Renamed app namespace and components to `edu.aiims.surveylauncher` (matches `applicationId` and DO/home components).
+    - Applied a cohesive dark/glassy Material3 theme with brighter headings for readability across registration, login, PIN, settings, and app drawer.
+
+### Added
+- **Android Launcher**:
+    - Debug-only registration bypass: entering code `1234` in debug builds skips the server call and stores a local debug device registration for faster testing.
+
 ## [0.7.0] - 2025-11-20
 
 ### Added
