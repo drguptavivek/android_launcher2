@@ -74,6 +74,10 @@ This phase focuses on defining rules (policies) for devices/users and enforcing 
     - [x] Apply lock task allow-list before starting kiosk (multi-app).
     - [x] Default allow-list when no policy present (launcher, ODK, WhatsApp/Business, dialer/messaging variants, Gmail, Firefox, Chrome, REDCap, Settings), plus auto-allow installed `edu.aiims.*` apps.
     - [x] App drawer now filters strictly to the allow-list (no show-all fallback).
+- [x] **Device Security & Lock**:
+    - 5-minute inactivity triggers device lock via `DevicePolicyManager.lockNow()` (uses system PIN/biometric).
+    - Launcher prompts system lock setup if no credential is set; “Change PIN” opens system lock screen.
+    - Removed in-app PIN lock overlay; rely on system credential for protecting apps.
 - [ ] **Policy Sync**:
     - [ ] Update `TelemetryWorker` to fetch policy from `/api/sync/:deviceId`.
     - [ ] Store policy locally (Room or Prefs).
